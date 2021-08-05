@@ -6,8 +6,6 @@ import (
 )
 
 func main() {
-
 	saucenao.Init()
 	bot.Init()
-
 }

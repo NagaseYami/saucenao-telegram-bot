@@ -14,15 +14,14 @@ import (
 )
 
 type Header struct {
-	ShortLimit        string
-	LongLimit         string
-	ShortRemain       string
-	LongRemain        string
-	MinimumSimilarity string
+	ShortLimit  string
+	LongLimit   string
+	ShortRemain string
+	LongRemain  string
 }
 type Result struct {
-	DataBaseName string
-	URL          string
+	Databases []string
+	URLs      []string
 }
 
 var apiKey string
@@ -49,27 +48,55 @@ func Search(fileURL string) (Header, []Result) {
 	io.Copy(buf, resp.Body)
 
 	gResult := gjson.ParseBytes(buf.Bytes())
-	header := gResult.Get("header")
-	urls := gResult.Get("results.#.data.ext_urls.0").Array()
 
-	var results []Result
+	jsonHeader := gResult.Get("header")
 
-	for _, url := range urls {
-		results = append(results, Result{DataBaseName: GetDatabaseFromURL(url.String()), URL: url.String()})
+	searchResultHeader := Header{
+		ShortLimit:  jsonHeader.Get("short_limit").String(),
+		LongLimit:   jsonHeader.Get("long_limit").String(),
+		ShortRemain: jsonHeader.Get("short_remaining").String(),
+		LongRemain:  jsonHeader.Get("long_remaining").String(),
 	}
 
-	return Header{
-		ShortLimit:        header.Get("short_limit").String(),
-		LongLimit:         header.Get("long_limit").String(),
-		ShortRemain:       header.Get("short_remaining").String(),
-		LongRemain:        header.Get("long_remaining").String(),
-		MinimumSimilarity: header.Get("minimum_similarity").String(),
-	}, results
+	jsonResults := gResult.Get("results").Array()
+	var searchResultData []Result
+	for _, r := range jsonResults {
+
+		if r.Get("header.similarity").Float() < 80 {
+			continue
+		}
+
+		var urls []string
+		for _, u := range r.Get("data.ext_urls").Array() {
+			urls = append(urls, u.String())
+		}
+
+		if len(urls) == 0 {
+			continue
+		}
+
+		source := r.Get("data.source").String()
+
+		if source != "" && strings.Contains(source, "https://") && !strings.Contains(source, "i.pximg.net") {
+			urls = append(urls, source)
+		}
+
+		var databases []string
+		for _, u := range urls {
+			databases = append(databases, GetDatabaseFromURL(u))
+		}
+
+		searchResultData = append(searchResultData, Result{
+			Databases: databases,
+			URLs:      urls,
+		})
+	}
+
+	return searchResultHeader, searchResultData
 }
 
 func GetDatabaseFromURL(url string) string {
-	if strings.Contains(url, "i.pximg.net") ||
-		strings.Contains(url, "pixiv") {
+	if strings.Contains(url, "pixiv") {
 		return "Pixiv"
 	} else if strings.Contains(url, "danbooru") {
 		return "Danbooru"

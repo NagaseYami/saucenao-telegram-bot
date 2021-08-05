@@ -41,7 +41,7 @@ func Init() {
 }
 
 func ReverseImageSearch(m *tb.Message) {
-	msg, err := bot.Reply(m, "Searching...")
+	msg, err := bot.Reply(m, "搜索中...")
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -55,7 +55,7 @@ func ReverseImageSearch(m *tb.Message) {
 	}
 
 	if fileID == "" {
-		bot.Reply(m, "Photo PLZ.")
+		bot.Reply(m, "需要图片")
 		return
 	}
 
@@ -68,26 +68,34 @@ func ReverseImageSearch(m *tb.Message) {
 
 	// Search on SauceNAO
 	header, results := saucenao.Search(fileURL)
+
+	text := fmt.Sprintf("API 30s 搜索次数限制 : %s/%s\nAPI 24h 搜索次数限制 : %s/%s", header.ShortRemain, header.ShortLimit, header.LongRemain, header.LongLimit)
+
 	var selector = &tb.ReplyMarkup{}
-	var btns []tb.Btn
-	for _, result := range results {
-		btns = append(btns, tb.Btn{
-			Text: result.DataBaseName,
-			URL:  result.URL,
-		})
-	}
+	if len(results) != 0 {
 
-	var rows []tb.Row
-	for i := 0; i < len(btns)/3+1; i++ {
-		if len(btns)-(i+1)*3 < 0 {
-			rows = append(rows, selector.Row(btns[i*3:]...))
-		} else {
-			rows = append(rows, selector.Row(btns[i*3:i*3+3]...))
+		var btns []tb.Btn
+		for _, result := range results {
+			for i := 0; i < len(result.Databases); i++ {
+				btns = append(btns, tb.Btn{
+					Text: result.Databases[i],
+					URL:  result.URLs[i],
+				})
+			}
 		}
+
+		var rows []tb.Row
+		for i := 0; i < len(btns)/3+1; i++ {
+			if len(btns)-(i+1)*3 < 0 {
+				rows = append(rows, selector.Row(btns[i*3:]...))
+			} else {
+				rows = append(rows, selector.Row(btns[i*3:i*3+3]...))
+			}
+		}
+
+		selector.Inline(rows...)
+	} else {
+		text += "\n无结果（搜索结果相似度均低于80）"
 	}
-
-	selector.Inline(rows...)
-
-	text := fmt.Sprintf("API 30s limit remianing : %s/%s\nAPI 24h limit remaining : %s/%s\nMinimum Similarity : %s", header.ShortRemain, header.ShortLimit, header.LongRemain, header.LongLimit, header.MinimumSimilarity)
 	bot.Edit(msg, text, selector)
 }
