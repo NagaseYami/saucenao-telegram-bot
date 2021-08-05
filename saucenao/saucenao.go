@@ -106,6 +106,8 @@ func GetDatabaseFromURL(url string) string {
 		return "Sankaku"
 	} else if strings.Contains(url, "anime-pictures.net") {
 		return "Anime Pictures"
+	} else if strings.Contains(url, "i.redd.it") {
+		return "Reddit"
 	} else if strings.Contains(url, "yande.re") {
 		return "Yandere"
 	} else if strings.Contains(url, "imdb") {
