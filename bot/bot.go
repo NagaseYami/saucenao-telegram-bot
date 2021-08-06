@@ -2,6 +2,7 @@ package bot
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"time"
 
@@ -85,7 +86,7 @@ func ReverseImageSearch(m *tb.Message) {
 		}
 
 		var rows []tb.Row
-		for i := 0; i < len(btns)/3+1; i++ {
+		for i := 0; i < int(math.Ceil(float64(len(btns)/3.0))); i++ {
 			if len(btns)-(i+1)*3 < 0 {
 				rows = append(rows, selector.Row(btns[i*3:]...))
 			} else {
