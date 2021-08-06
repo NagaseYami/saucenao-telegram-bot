@@ -29,7 +29,7 @@ var apiKey string
 func Init() {
 	apiKey = os.Getenv("SAUCENAO_API_KEY")
 	if apiKey == "" {
-		log.Fatal("SauceNAO api key not found.")
+		log.Fatal("环境变量「SAUCENAO_API_KEY」缺失")
 	}
 }
 

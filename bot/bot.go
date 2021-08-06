@@ -18,7 +18,7 @@ func Init() {
 
 	botToken = os.Getenv("BOT_TOKEN")
 	if botToken == "" {
-		log.Fatal("Bot token not found.")
+		log.Fatal("环境变量「BOT_TOKEN」缺失")
 	}
 
 	bot, err = tb.NewBot(tb.Settings{
