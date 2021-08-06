@@ -98,5 +98,8 @@ func ReverseImageSearch(m *tb.Message) {
 	} else {
 		text += "\n无结果（搜索结果相似度均低于80）"
 	}
-	bot.Edit(msg, text, selector)
+	_, err = bot.Edit(msg, text, selector)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
