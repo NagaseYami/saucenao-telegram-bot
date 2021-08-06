@@ -139,6 +139,8 @@ func GetDatabaseFromURL(url string) string {
 		return "FurAffinity"
 	} else if strings.Contains(url, "artstation.com") {
 		return "ArtStation"
+	} else if strings.Contains(url, "bcy.net") {
+		return "半次元"
 	} else {
 		return "Unknown"
 	}
