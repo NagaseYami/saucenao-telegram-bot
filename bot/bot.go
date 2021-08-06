@@ -77,12 +77,10 @@ func ReverseImageSearch(m *tb.Message) {
 
 		var btns []tb.Btn
 		for _, result := range results {
-			for i := 0; i < len(result.Databases); i++ {
-				btns = append(btns, tb.Btn{
-					Text: result.Databases[i],
-					URL:  result.URLs[i],
-				})
-			}
+			btns = append(btns, tb.Btn{
+				Text: result.Database,
+				URL:  result.URL,
+			})
 		}
 
 		var rows []tb.Row

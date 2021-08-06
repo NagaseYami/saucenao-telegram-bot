@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 
+	. "github.com/ahmetb/go-linq/v3"
 	log "github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 )
@@ -20,8 +21,8 @@ type Header struct {
 	LongRemain  string
 }
 type Result struct {
-	Databases []string
-	URLs      []string
+	Database string
+	URL      string
 }
 
 var apiKey string
@@ -59,7 +60,7 @@ func Search(fileURL string) (Header, []Result) {
 	}
 
 	jsonResults := gResult.Get("results").Array()
-	var searchResultData []Result
+	searchResultData := make(map[string]string)
 	for _, r := range jsonResults {
 
 		if r.Get("header.similarity").Float() < 80 {
@@ -81,18 +82,20 @@ func Search(fileURL string) (Header, []Result) {
 			urls = append(urls, source)
 		}
 
-		var databases []string
 		for _, u := range urls {
-			databases = append(databases, GetDatabaseFromURL(u))
+			searchResultData[u] = GetDatabaseFromURL(u)
 		}
-
-		searchResultData = append(searchResultData, Result{
-			Databases: databases,
-			URLs:      urls,
-		})
 	}
 
-	return searchResultHeader, searchResultData
+	var results []Result
+	From(searchResultData).Select(func(i interface{}) interface{} {
+		return Result{
+			Database: i.(KeyValue).Value.(string),
+			URL:      i.(KeyValue).Key.(string),
+		}
+	}).ToSlice(&results)
+
+	return searchResultHeader, results
 }
 
 func GetDatabaseFromURL(url string) string {
