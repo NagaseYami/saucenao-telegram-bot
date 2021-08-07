@@ -3,7 +3,10 @@ package bot
 import (
 	"fmt"
 	"math"
+	"math/rand"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/NagaseYami/saucenao-telegram-bot/saucenao"
@@ -37,16 +40,53 @@ func Init() {
 
 	bot.Handle(tb.OnPhoto, ReverseImageSearch)
 	bot.Handle("/sauce", ReverseImageSearch)
+	bot.Handle("/dice", Dice)
 
 	bot.Start()
 }
 
-func ReverseImageSearch(m *tb.Message) {
-	msg, err := bot.Reply(m, "搜索中...")
-	if err != nil {
-		log.Fatalln(err)
+func Dice(m *tb.Message) {
+	cmd := strings.Split(strings.ToLower(m.Payload), " ")[0]
+
+	if cmd == "" {
+		cmd = "1d6"
 	}
 
+	s := strings.Split(cmd, "d")
+	if len(s) == 2 {
+		if s[0] == "" {
+			s[0] = "1"
+		}
+		num, err := strconv.ParseInt(s[0], 10, 64)
+		if num > 100 {
+			bot.Reply(m, "为了保证机器人不会炸掉，请控制投掷次数≤100次")
+			return
+		}
+		if err == nil {
+			face, err := strconv.ParseInt(s[1], 10, 64)
+			if face > 10000 {
+				bot.Reply(m, "为了保证机器人不会炸掉，请控制骰子面数≤10000")
+				return
+			}
+			if err == nil {
+				rand.Seed(time.Now().UnixNano())
+				var results []int64
+				var sum int64
+				for i := num; i != 0; i-- {
+					n := rand.Int63n(face)
+					results = append(results, n)
+					sum += n
+				}
+				bot.Reply(m, fmt.Sprintf("投掷D%d骰子%d次的结果为%d\n最终合计值为%d", face, num, results, sum))
+				return
+			}
+		}
+	}
+
+	bot.Reply(m, "格式不正确，正确用法例：「/dice 1d6」")
+}
+
+func ReverseImageSearch(m *tb.Message) {
 	// Get photo file ID
 	var fileID string
 	if m.Photo != nil {
