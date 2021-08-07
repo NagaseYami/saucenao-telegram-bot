@@ -88,16 +88,17 @@ func Search(fileURL string) (Header, []Result) {
 
 			// 从Pixiv多图Artwork的单图链接中提取Artwork链接
 			if strings.Contains(u, "https://i.pximg.net") {
-				fileName:= path.Base(u)
-				noExt:=strings.Replace(fileName,path.Ext(fileName),"",1)
+				fileName := path.Base(u)
+				noExt := strings.Replace(fileName, path.Ext(fileName), "", 1)
 				re := regexp.MustCompile(`_p[0-9]+`)
-				pixivID := re.ReplaceAllString(noExt,"")
-				u = fmt.Sprintf("https://www.pixiv.net/artworks/%s",pixivID)
+				pixivID := re.ReplaceAllString(noExt, "")
+				u = fmt.Sprintf("https://www.pixiv.net/artworks/%s", pixivID)
 			}
 
 			// 去除因新旧PixivURL而产生的重复
 			re := regexp.MustCompile("www.pixiv.net/member_illust.php?mode=medium&illust_id=([0-9]+)")
 			u = re.ReplaceAllString(u, "www.pixiv.net/artworks/$1")
+
 			searchResultData[u] = GetDatabaseFromURL(u)
 		}
 	}
