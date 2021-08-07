@@ -86,7 +86,7 @@ func Search(fileURL string) (Header, []Result) {
 
 		for _, u := range urls {
 
-			// 从Pixiv多图Artwork的单图链接中提取Artwork链接
+			// 从P站多图Artwork的单图链接中提取Artwork链接
 			if strings.Contains(u, "https://i.pximg.net") {
 				fileName := path.Base(u)
 				noExt := strings.Replace(fileName, path.Ext(fileName), "", 1)
@@ -95,9 +95,9 @@ func Search(fileURL string) (Header, []Result) {
 				u = fmt.Sprintf("https://www.pixiv.net/artworks/%s", pixivID)
 			}
 
-			// 去除因新旧PixivURL而产生的重复
-			re := regexp.MustCompile("www.pixiv.net/member_illust.php?mode=medium&illust_id=([0-9]+)")
-			u = re.ReplaceAllString(u, "www.pixiv.net/artworks/$1")
+			// 将旧格式P站链接转换为新格式P站链接
+			re := regexp.MustCompile(`www.pixiv.net/member_illust.php\?mode=medium&illust_id=([0-9]+)`)
+			u = re.ReplaceAllString(u, "www.pixiv.net/artworks/${1}")
 
 			searchResultData[u] = GetDatabaseFromURL(u)
 		}
