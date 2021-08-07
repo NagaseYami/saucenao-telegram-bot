@@ -97,8 +97,7 @@ func Search(fileURL string) (Header, []Result) {
 
 			// 去除因新旧PixivURL而产生的重复
 			re := regexp.MustCompile("www.pixiv.net/member_illust.php?mode=medium&illust_id=([0-9]+)")
-			re.ReplaceAllString(u,"www.pixiv.net/artworks/$1")
-			
+			u = re.ReplaceAllString(u, "www.pixiv.net/artworks/$1")
 			searchResultData[u] = GetDatabaseFromURL(u)
 		}
 	}
