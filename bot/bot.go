@@ -100,6 +100,11 @@ func ReverseImageSearch(m *tb.Message) {
 		return
 	}
 
+	msg, err := bot.Reply(m, "搜索中...")
+	if err != nil {
+		log.Fatalln(err)
+	}
+
 	// Get photo file URL
 	fileURL, err := bot.FileURLByID(fileID)
 	if err != nil {
