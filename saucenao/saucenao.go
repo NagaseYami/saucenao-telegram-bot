@@ -99,13 +99,13 @@ func Search(fileURL string) (Header, []Result) {
 }
 
 func GetDatabaseFromURL(url string) string {
-	if strings.Contains(url, "pixiv") {
+	if strings.Contains(url, "www.pixiv.net") {
 		return "Pixiv"
-	} else if strings.Contains(url, "danbooru") {
+	} else if strings.Contains(url, "danbooru.donmai.us") {
 		return "Danbooru"
-	} else if strings.Contains(url, "gelbooru") {
+	} else if strings.Contains(url, "gelbooru.com") {
 		return "Gelbooru"
-	} else if strings.Contains(url, "sankaku") {
+	} else if strings.Contains(url, "chan.sankakucomplex.com") {
 		return "Sankaku"
 	} else if strings.Contains(url, "anime-pictures.net") {
 		return "Anime Pictures"
@@ -113,11 +113,11 @@ func GetDatabaseFromURL(url string) string {
 		return "Reddit"
 	} else if strings.Contains(url, "yande.re") {
 		return "Yandere"
-	} else if strings.Contains(url, "imdb") {
+	} else if strings.Contains(url, "www.imdb.com") {
 		return "IMDB"
-	} else if strings.Contains(url, "deviantart") {
+	} else if strings.Contains(url, "deviantart.com") {
 		return "Deviantart"
-	} else if strings.Contains(url, "twitter") {
+	} else if strings.Contains(url, "twitter.com") {
 		return "Twitter"
 	} else if strings.Contains(url, "nijie.info") {
 		return "Nijie"
