@@ -159,6 +159,8 @@ func GetDatabaseFromURL(url string) string {
 		return "半次元"
 	} else if strings.Contains(url, "konachan.com") {
 		return "Konachan"
+	} else if strings.Contains(url, "fanbox.cc") {
+		return "Pixiv Fanbox"
 	} else {
 		return "Unknown"
 	}
