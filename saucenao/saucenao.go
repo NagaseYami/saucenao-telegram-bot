@@ -27,6 +27,7 @@ type Result struct {
 	URL      string
 }
 
+var apiURL string = "https://saucenao.com/search.php?api_key=%s&db=999&output_type=2&numres=9&url=%s"
 var apiKey string
 
 func Init() {
@@ -36,13 +37,12 @@ func Init() {
 	}
 }
 
-func Search(fileURL string) (Header, []Result) {
+func Search(fileURL string) (Header, []Result, error) {
 	escapedURL := url.PathEscape(fileURL)
-	resp, err := http.Get(fmt.Sprintf("https://saucenao.com/search.php?api_key=%s&db=999&output_type=2&numres=9&url=%s",
-		apiKey, escapedURL))
+	resp, err := http.Get(fmt.Sprintf(apiURL, apiKey, escapedURL))
 
 	if err != nil {
-		log.Fatal("")
+		return Header{}, []Result{}, err
 	}
 
 	defer resp.Body.Close()
@@ -111,7 +111,7 @@ func Search(fileURL string) (Header, []Result) {
 		}
 	}).ToSlice(&results)
 
-	return searchResultHeader, results
+	return searchResultHeader, results, err
 }
 
 func GetDatabaseFromURL(url string) string {

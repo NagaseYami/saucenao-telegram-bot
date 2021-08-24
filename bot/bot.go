@@ -87,6 +87,9 @@ func Dice(m *tb.Message) {
 }
 
 func ReverseImageSearch(m *tb.Message) {
+	var msg *tb.Message
+	var err error
+
 	// Get photo file ID
 	var fileID string
 	if m.Photo != nil {
@@ -96,24 +99,37 @@ func ReverseImageSearch(m *tb.Message) {
 	}
 
 	if fileID == "" {
-		bot.Reply(m, "需要图片")
+		_, err = bot.Reply(m, "需要图片")
+		if err != nil {
+			log.Error(err)
+			return
+		}
 		return
 	}
 
-	msg, err := bot.Reply(m, "搜索中...")
+	msg, err = bot.Reply(m, "搜索中...")
 	if err != nil {
-		log.Fatalln(err)
+		log.Error(err)
+		return
 	}
 
 	// Get photo file URL
-	fileURL, err := bot.FileURLByID(fileID)
+	var fileURL string
+	fileURL, err = bot.FileURLByID(fileID)
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
 		return
 	}
 
 	// Search on SauceNAO
-	header, results := saucenao.Search(fileURL)
+	var header saucenao.Header
+	var results []saucenao.Result
+	header, results, err = saucenao.Search(fileURL)
+
+	if err != nil {
+		log.Error(err)
+		return
+	}
 
 	text := fmt.Sprintf("API 30s 搜索次数限制 : %s/%s\nAPI 24h 搜索次数限制 : %s/%s", header.ShortRemain, header.ShortLimit, header.LongRemain, header.LongLimit)
 
@@ -143,6 +159,7 @@ func ReverseImageSearch(m *tb.Message) {
 	}
 	_, err = bot.Edit(msg, text, selector)
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		return
 	}
 }
