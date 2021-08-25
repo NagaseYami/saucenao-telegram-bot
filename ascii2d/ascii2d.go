@@ -73,7 +73,7 @@ func Search(fileURL string) (Result, error) {
 	thumbPath, exist2 := doc.Find(".item-box .image-box img[loading=\"eager\"]").Attr("src")
 
 	return Result{
-		ThumbnailURL: ascii2dURL+thumbPath,
+		ThumbnailURL: ascii2dURL + thumbPath,
 		URL:          url,
 		Exist:        exist1 && exist2,
 	}, err
