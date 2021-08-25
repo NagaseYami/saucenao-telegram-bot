@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/NagaseYami/saucenao-telegram-bot/ascii2d"
 	"github.com/NagaseYami/saucenao-telegram-bot/saucenao"
 	log "github.com/sirupsen/logrus"
 	tb "gopkg.in/tucnak/telebot.v2"
@@ -38,8 +39,8 @@ func Init() {
 		return
 	}
 
-	bot.Handle(tb.OnPhoto, func(m *tb.Message) { go ReverseImageSearch(m) })
-	bot.Handle("/sauce", func(m *tb.Message) { go ReverseImageSearch(m) })
+	bot.Handle(tb.OnPhoto, func(m *tb.Message) { go Saucenao(m) })
+	bot.Handle("/sauce", func(m *tb.Message) { go Saucenao(m) })
 	bot.Handle("/dice", func(m *tb.Message) { go Dice(m) })
 
 	bot.Start()
@@ -86,7 +87,7 @@ func Dice(m *tb.Message) {
 	bot.Reply(m, "格式不正确，正确用法例：「/dice 1d6」")
 }
 
-func ReverseImageSearch(m *tb.Message) {
+func Saucenao(m *tb.Message) {
 	var msg *tb.Message
 	var err error
 
@@ -107,7 +108,7 @@ func ReverseImageSearch(m *tb.Message) {
 		return
 	}
 
-	msg, err = bot.Reply(m, "搜索中...")
+	msg, err = bot.Reply(m, "SauceNAO搜索中...")
 	if err != nil {
 		log.Error(err)
 		return
@@ -155,11 +156,48 @@ func ReverseImageSearch(m *tb.Message) {
 
 		selector.Inline(rows...)
 	} else {
-		text += "\n无结果（搜索结果相似度均低于80）"
+		text += "\n无结果（搜索结果相似度均低于80）\n将自动启动ascii2d搜索"
+		go ascii2dSearch(m, fileURL)
 	}
 	_, err = bot.Edit(msg, text, selector)
 	if err != nil {
 		log.Error(err)
 		return
+	}
+
+}
+
+func ascii2dSearch(m *tb.Message, fileURL string) {
+
+	msg, err := bot.Reply(m, "ascii2d搜索中...\nascii2d没有相似度检测，搜索结果不一定正确")
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
+	result, err := ascii2d.Search(fileURL)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+	if !result.Exist {
+		_, err = bot.Edit(msg, "无搜索结果")
+		if err != nil {
+			log.Error(err)
+			return
+		}
+	} else {
+		var selector = &tb.ReplyMarkup{}
+		selector.Inline(tb.Row{
+			tb.Btn{
+				Text: "URL",
+				URL:  result.URL,
+			},
+		})
+		_, err = bot.Reply(msg, &tb.Photo{File: tb.FromURL(result.ThumbnailURL)}, selector)
+		if err != nil {
+			log.Error(err)
+			return
+		}
 	}
 }
