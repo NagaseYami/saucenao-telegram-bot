@@ -27,7 +27,8 @@ type Result struct {
 	URL      string
 }
 
-var apiURL string = "https://saucenao.com/search.php?api_key=%s&db=999&output_type=2&numres=9&url=%s"
+const apiURL string = "https://saucenao.com/search.php?api_key=%s&db=999&output_type=2&numres=9&url=%s"
+
 var apiKey string
 
 func Init() {
