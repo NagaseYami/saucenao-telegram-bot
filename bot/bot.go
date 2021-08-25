@@ -137,20 +137,20 @@ func Saucenao(m *tb.Message) {
 	var selector = &tb.ReplyMarkup{}
 	if len(results) != 0 {
 
-		var btns []tb.Btn
+		var buttons []tb.Btn
 		for _, result := range results {
-			btns = append(btns, tb.Btn{
+			buttons = append(buttons, tb.Btn{
 				Text: result.Database,
 				URL:  result.URL,
 			})
 		}
 
 		var rows []tb.Row
-		for i := 0; i < int(math.Ceil(float64(len(btns))/3.0)); i++ {
-			if len(btns)-(i+1)*3 < 0 {
-				rows = append(rows, selector.Row(btns[i*3:]...))
+		for i := 0; i < int(math.Ceil(float64(len(buttons))/3.0)); i++ {
+			if len(buttons)-(i+1)*3 < 0 {
+				rows = append(rows, selector.Row(buttons[i*3:]...))
 			} else {
-				rows = append(rows, selector.Row(btns[i*3:i*3+3]...))
+				rows = append(rows, selector.Row(buttons[i*3:i*3+3]...))
 			}
 		}
 
