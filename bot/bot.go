@@ -38,9 +38,9 @@ func Init() {
 		return
 	}
 
-	bot.Handle(tb.OnPhoto, ReverseImageSearch)
-	bot.Handle("/sauce", ReverseImageSearch)
-	bot.Handle("/dice", Dice)
+	bot.Handle(tb.OnPhoto, func(m *tb.Message) { go ReverseImageSearch(m) })
+	bot.Handle("/sauce", func(m *tb.Message) { go ReverseImageSearch(m) })
+	bot.Handle("/dice", func(m *tb.Message) { go Dice(m) })
 
 	bot.Start()
 }
