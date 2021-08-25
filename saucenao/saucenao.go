@@ -163,6 +163,8 @@ func GetDatabaseFromURL(url string) string {
 		return "Pixiv Fanbox"
 	} else if strings.Contains(url, "e621.net") {
 		return "e621"
+	} else if strings.Contains(url, "exhentai.org") {
+		return "exhentai"
 	} else {
 		return "Unknown"
 	}
