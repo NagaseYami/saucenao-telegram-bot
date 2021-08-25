@@ -103,7 +103,7 @@ func getToken() (string, error) {
 	token, exist := doc.Find("head meta[name=\"csrf-token\"]").Attr("content")
 
 	if !exist {
-		return "", errors.New("Token not found")
+		return "", errors.New("无法获取ascii2d的token")
 	}
 
 	return token, err
