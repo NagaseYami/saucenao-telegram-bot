@@ -30,7 +30,10 @@ func Search(fileURL string) (Result, error) {
 
 	bytes := sha256.Sum256([]byte(fileURL))
 	fileName := fmt.Sprintf("%x%s", string(bytes[:]), path.Ext(fileURL))
-	os.Mkdir(tempFolder, os.ModeDir)
+	err = os.Mkdir(tempFolder, os.ModeDir)
+	if err != nil {
+		return Result{}, err
+	}
 	filePath := path.Join(tempFolder, fileName)
 	err = res.ToFile(filePath)
 	if err != nil {
@@ -59,6 +62,10 @@ func Search(fileURL string) (Result, error) {
 		FieldName: "file",
 		File:      file,
 	}, param)
+
+	if err != nil {
+		return Result{}, err
+	}
 
 	if res.Response().StatusCode != 200 {
 		return Result{}, errors.New(res.Response().Status)
