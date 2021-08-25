@@ -47,6 +47,7 @@ func Init() {
 }
 
 func Dice(m *tb.Message) {
+	var err error
 	cmd := strings.Split(strings.ToLower(m.Payload), " ")[0]
 
 	if cmd == "" {
@@ -60,13 +61,19 @@ func Dice(m *tb.Message) {
 		}
 		num, err := strconv.ParseInt(s[0], 10, 64)
 		if num > 100 {
-			bot.Reply(m, "为了保证机器人不会炸掉，请控制投掷次数≤100次")
+			_, err = bot.Reply(m, "为了保证机器人不会炸掉，请控制投掷次数≤100次")
+			if err != nil {
+				log.Error(err)
+			}
 			return
 		}
 		if err == nil {
 			face, err := strconv.ParseInt(s[1], 10, 64)
 			if face > 10000 {
-				bot.Reply(m, "为了保证机器人不会炸掉，请控制骰子面数≤10000")
+				_, err = bot.Reply(m, "为了保证机器人不会炸掉，请控制骰子面数≤10000")
+				if err != nil {
+					log.Error(err)
+				}
 				return
 			}
 			if err == nil {
@@ -78,13 +85,19 @@ func Dice(m *tb.Message) {
 					results = append(results, n)
 					sum += n
 				}
-				bot.Reply(m, fmt.Sprintf("投掷D%d骰子%d次的结果为%d\n最终合计值为%d", face, num, results, sum))
+				_, err = bot.Reply(m, fmt.Sprintf("投掷D%d骰子%d次的结果为%d\n最终合计值为%d", face, num, results, sum))
+				if err != nil {
+					log.Error(err)
+				}
 				return
 			}
 		}
 	}
 
-	bot.Reply(m, "格式不正确，正确用法例：「/dice 1d6」")
+	_, err = bot.Reply(m, "格式不正确，正确用法例：「/dice 1d6」")
+	if err != nil {
+		log.Error(err)
+	}
 }
 
 func Saucenao(m *tb.Message) {
