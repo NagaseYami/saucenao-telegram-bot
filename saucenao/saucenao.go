@@ -161,6 +161,8 @@ func GetDatabaseFromURL(url string) string {
 		return "Konachan"
 	} else if strings.Contains(url, "fanbox.cc") {
 		return "Pixiv Fanbox"
+	} else if strings.Contains(url, "e621.net") {
+		return "e621"
 	} else {
 		return "Unknown"
 	}
