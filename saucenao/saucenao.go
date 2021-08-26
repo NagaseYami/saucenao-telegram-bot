@@ -17,10 +17,10 @@ import (
 )
 
 type Header struct {
-	ShortLimit  string
-	LongLimit   string
-	ShortRemain string
-	LongRemain  string
+	ShortLimit  int64
+	LongLimit   int64
+	ShortRemain int64
+	LongRemain  int64
 }
 type Result struct {
 	Database string
@@ -56,10 +56,10 @@ func Search(fileURL string) (Header, []Result, error) {
 	jsonHeader := gResult.Get("header")
 
 	searchResultHeader := Header{
-		ShortLimit:  jsonHeader.Get("short_limit").String(),
-		LongLimit:   jsonHeader.Get("long_limit").String(),
-		ShortRemain: jsonHeader.Get("short_remaining").String(),
-		LongRemain:  jsonHeader.Get("long_remaining").String(),
+		ShortLimit:  jsonHeader.Get("short_limit").Int(),
+		LongLimit:   jsonHeader.Get("long_limit").Int(),
+		ShortRemain: jsonHeader.Get("short_remaining").Int(),
+		LongRemain:  jsonHeader.Get("long_remaining").Int(),
 	}
 
 	jsonResults := gResult.Get("results").Array()

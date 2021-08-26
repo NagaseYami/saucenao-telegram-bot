@@ -145,10 +145,17 @@ func Saucenao(m *tb.Message) {
 		return
 	}
 
-	text := fmt.Sprintf("API 30s 搜索次数限制 : %s/%s\nAPI 24h 搜索次数限制 : %s/%s", header.ShortRemain, header.ShortLimit, header.LongRemain, header.LongLimit)
-
+	var text string
 	var selector = &tb.ReplyMarkup{}
-	if len(results) != 0 {
+	var needAscii2d = false
+
+	if header.ShortRemain <= 0 {
+		text = "搜索过于频繁，已达到30秒内搜索次数上限\nSauceNAO搜索失败，将启用ascii2d搜索"
+		needAscii2d = true
+	} else if header.ShortRemain <= 0 {
+		text = "搜索过于频繁，已达到24小时内搜索次数上限\nSauceNAO搜索失败，将启用ascii2d搜索"
+		needAscii2d = true
+	} else if len(results) != 0 {
 
 		var buttons []tb.Btn
 		for _, result := range results {
@@ -169,8 +176,8 @@ func Saucenao(m *tb.Message) {
 
 		selector.Inline(rows...)
 	} else {
-		text += "\n无结果（搜索结果相似度均低于80）\n将自动启动ascii2d搜索"
-		go ascii2dSearch(m, fileURL)
+		text += "\n搜索失败（搜索结果相似度均低于80）\n将自动启动ascii2d搜索"
+		needAscii2d = true
 	}
 	_, err = bot.Edit(msg, text, selector)
 	if err != nil {
@@ -178,6 +185,9 @@ func Saucenao(m *tb.Message) {
 		return
 	}
 
+	if needAscii2d {
+		go ascii2dSearch(m, fileURL)
+	}
 }
 
 func ascii2dSearch(m *tb.Message, fileURL string) {
@@ -194,7 +204,7 @@ func ascii2dSearch(m *tb.Message, fileURL string) {
 		return
 	}
 	if !result.Exist {
-		_, err = bot.Edit(msg, "无搜索结果")
+		_, err = bot.Edit(msg, "ascii2d搜索失败")
 		if err != nil {
 			log.Error(err)
 			return
@@ -207,6 +217,11 @@ func ascii2dSearch(m *tb.Message, fileURL string) {
 				URL:  result.URL,
 			},
 		})
+		err = bot.Delete(msg)
+		if err != nil {
+			log.Warn(err)
+		}
+
 		_, err = bot.Reply(msg, &tb.Photo{File: tb.FromURL(result.ThumbnailURL)}, selector)
 		if err != nil {
 			log.Error(err)
