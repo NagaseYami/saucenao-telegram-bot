@@ -17,3 +17,6 @@
 # VS code
 .idea/
 *.code-workspace
+
+# Temp
+temp/
