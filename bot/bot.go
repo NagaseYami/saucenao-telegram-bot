@@ -156,7 +156,7 @@ func Saucenao(m *tb.Message) {
 		text = "搜索过于频繁，已达到24小时内搜索次数上限\nSauceNAO搜索失败，将启用ascii2d搜索"
 		needAscii2d = true
 	} else if len(results) != 0 {
-
+		text = "SauceNAO搜索完毕"
 		var buttons []tb.Btn
 		for _, result := range results {
 			buttons = append(buttons, tb.Btn{
@@ -176,7 +176,7 @@ func Saucenao(m *tb.Message) {
 
 		selector.Inline(rows...)
 	} else {
-		text += "\n搜索失败（搜索结果相似度均低于80）\n将自动启动ascii2d搜索"
+		text += "\nSauceNAO搜索失败（搜索结果相似度均低于80）\n将自动启动ascii2d搜索"
 		needAscii2d = true
 	}
 	_, err = bot.Edit(msg, text, selector)
@@ -213,7 +213,7 @@ func ascii2dSearch(m *tb.Message, fileURL string) {
 		var selector = &tb.ReplyMarkup{}
 		selector.Inline(tb.Row{
 			tb.Btn{
-				Text: "URL",
+				Text: "ascii2d搜索结果",
 				URL:  result.URL,
 			},
 		})
@@ -222,7 +222,7 @@ func ascii2dSearch(m *tb.Message, fileURL string) {
 			log.Warn(err)
 		}
 
-		_, err = bot.Reply(msg, &tb.Photo{File: tb.FromURL(result.ThumbnailURL)}, selector)
+		_, err = bot.Reply(m, &tb.Photo{File: tb.FromURL(result.ThumbnailURL)}, selector)
 		if err != nil {
 			log.Error(err)
 			return
