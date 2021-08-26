@@ -30,7 +30,7 @@ func Search(fileURL string) (Result, error) {
 
 	bytes := sha256.Sum256([]byte(fileURL))
 	fileName := fmt.Sprintf("%x%s", string(bytes[:]), path.Ext(fileURL))
-	err = os.Mkdir(tempFolder, os.ModeDir)
+	err = os.MkdirAll(tempFolder, os.ModeDir)
 	if err != nil {
 		return Result{}, err
 	}
@@ -76,8 +76,10 @@ func Search(fileURL string) (Result, error) {
 		return Result{}, err
 	}
 
-	url, exist1 := doc.Find(".row .item-box .info-box .detail-box a").First().Attr("href")
-	thumbPath, exist2 := doc.Find(".item-box .image-box img[loading=\"eager\"]").Attr("src")
+	first := doc.Find(".item-box:has(h6)").First()
+
+	url, exist1 := first.Find(".info-box .detail-box a").First().Attr("href")
+	thumbPath, exist2 := first.Find("img[loading=\"lazy\"]").Attr("src")
 
 	return Result{
 		ThumbnailURL: ascii2dURL + thumbPath,

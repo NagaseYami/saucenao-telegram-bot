@@ -16,7 +16,7 @@ func TestGetToken(t *testing.T) {
 
 func TestSearch(t *testing.T) {
 	t.Log("Testing ascii2d search")
-	result, err := Search("https://pbs.twimg.com/media/E9n_MXLUYAY6c3B?format=jpg&name=large")
+	result, err := Search("https://pbs.twimg.com/media/E9n_MXLUYAY6c3B.jpg")
 	if err != nil {
 		t.Fatal(err)
 	}
