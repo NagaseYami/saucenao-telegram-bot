@@ -152,7 +152,7 @@ func Saucenao(m *tb.Message) {
 	if header.ShortRemain <= 0 {
 		text = "搜索过于频繁，已达到30秒内搜索次数上限\nSauceNAO搜索失败，将启用ascii2d搜索"
 		needAscii2d = true
-	} else if header.ShortRemain <= 0 {
+	} else if header.LongRemain <= 0 {
 		text = "搜索过于频繁，已达到24小时内搜索次数上限\nSauceNAO搜索失败，将启用ascii2d搜索"
 		needAscii2d = true
 	} else if len(results) != 0 {
