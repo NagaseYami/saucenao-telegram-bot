@@ -166,6 +166,8 @@ func GetDatabaseFromURL(url string) string {
 		return "e621"
 	} else if strings.Contains(url, "exhentai.org") {
 		return "exhentai"
+	} else if strings.Contains(url, "fantia.jp") {
+		return "Fantia"
 	} else {
 		return "Unknown"
 	}
