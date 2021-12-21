@@ -5,8 +5,14 @@ import (
 )
 
 func TestGetToken(t *testing.T) {
+	service := &Service{
+		Config: &Config{
+			Enable:         true,
+			TempFolderPath: "../../temp",
+		},
+	}
 	t.Log("Getting ascii2d token")
-	token, err := getToken()
+	token, err := service.getToken()
 	if err != nil {
 		t.Fatal(err)
 	}

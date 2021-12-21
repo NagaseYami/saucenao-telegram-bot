@@ -20,3 +20,6 @@
 
 # Temp
 temp/
+
+# Config file
+config.yaml

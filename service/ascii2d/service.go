@@ -9,20 +9,22 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/imroc/req"
+	tb "gopkg.in/tucnak/telebot.v2"
 )
 
 const ascii2dURL string = "https://ascii2d.net/"
 const uploadURL string = "https://ascii2d.net/search/multi"
+
+type Config struct {
+	Enable         bool   `yaml:"Enable"`
+	TempFolderPath string `yaml:"TempFolderPath"`
+}
 
 type Service struct {
 	*Config
 }
 
 var Instance *Service
-
-func NewService(config *Config) *Service {
-	return &Service{Config: config}
-}
 
 func (service *Service) Search(fileURL string) (*Result, error) {
 
@@ -37,13 +39,13 @@ func (service *Service) Search(fileURL string) (*Result, error) {
 	fileName := fmt.Sprintf("%x%s", string(bytes[:]), path.Ext(fileURL))
 
 	// 创建存放图片的临时文件夹
-	err = os.MkdirAll(service.Config.TempFolderPath, os.ModeDir)
+	err = os.MkdirAll(service.TempFolderPath, os.ModeDir)
 	if err != nil {
 		return nil, err
 	}
 
 	// 储存图片至临时文件夹
-	filePath := path.Join(service.Config.TempFolderPath, fileName)
+	filePath := path.Join(service.TempFolderPath, fileName)
 	err = res.ToFile(filePath)
 	if err != nil {
 		return nil, err
@@ -58,7 +60,7 @@ func (service *Service) Search(fileURL string) (*Result, error) {
 
 	// 获取ascii2d网站的一次性token
 	var token string
-	token, err = getToken()
+	token, err = service.getToken()
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +99,7 @@ func (service *Service) Search(fileURL string) (*Result, error) {
 }
 
 // 获取ascii2d网站的一次性token
-func getToken() (string, error) {
+func (service *Service) getToken() (string, error) {
 
 	res, err := req.Get(ascii2dURL)
 	if err != nil {
@@ -120,4 +122,26 @@ func getToken() (string, error) {
 	}
 
 	return token, err
+}
+
+type Result struct {
+	Photo       *tb.Photo
+	URLSelector *tb.ReplyMarkup
+}
+
+func NewResult(thumbnailURL string, url string) *Result {
+
+	photo := &tb.Photo{File: tb.FromURL(thumbnailURL)}
+	selector := &tb.ReplyMarkup{}
+	selector.Inline(tb.Row{
+		tb.Btn{
+			Text: "ascii2d搜索结果",
+			URL:  url,
+		},
+	})
+
+	return &Result{
+		Photo:       photo,
+		URLSelector: selector,
+	}
 }

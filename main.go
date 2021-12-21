@@ -2,10 +2,13 @@ package main
 
 import (
 	"github.com/NagaseYami/saucenao-telegram-bot/bot"
-	"github.com/NagaseYami/saucenao-telegram-bot/saucenao"
+	flag "github.com/spf13/pflag"
 )
 
 func main() {
-	saucenao.Init()
-	bot.Init()
+	configFileFlag := flag.String("config", "", "Config file path.")
+	flag.Parse()
+
+	config := bot.LoadConfig(*configFileFlag)
+	bot.Instance = bot.NewBot(config)
 }

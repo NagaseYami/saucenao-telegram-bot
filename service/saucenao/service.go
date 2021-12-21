@@ -4,87 +4,72 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
-	"os"
 	"path"
 	"regexp"
 	"strings"
 
-	. "github.com/ahmetb/go-linq/v3"
-	log "github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
+	tb "gopkg.in/tucnak/telebot.v2"
 )
-
-type Header struct {
-	ShortLimit  int64
-	LongLimit   int64
-	ShortRemain int64
-	LongRemain  int64
-}
-type Result struct {
-	Database string
-	URL      string
-}
 
 const apiURL string = "https://saucenao.com/search.php?api_key=%s&db=999&output_type=2&numres=9&url=%s"
 
-var apiKey string
-
-func Init() {
-	apiKey = os.Getenv("SAUCENAO_API_KEY")
-	if apiKey == "" {
-		log.Fatal("环境变量「SAUCENAO_API_KEY」缺失")
-	}
+type Config struct {
+	Enable     bool    `yaml:"Enable"`
+	ApiKey     string  `yaml:"ApiKey"`
+	Similarity float64 `yaml:"Similarity"`
 }
 
-func Search(fileURL string) (Header, []Result, error) {
-	escapedURL := url.PathEscape(fileURL)
-	resp, err := http.Get(fmt.Sprintf(apiURL, apiKey, escapedURL))
+type Service struct {
+	*Config
+}
 
+var Instance *Service
+
+func (service *Service) Search(fileURL string) (*Result, error) {
+	// 访问API
+	resp, err := http.Get(fmt.Sprintf(apiURL, service.ApiKey, url.PathEscape(fileURL)))
 	if err != nil {
-		return Header{}, []Result{}, err
+		return nil, err
 	}
-
 	defer resp.Body.Close()
-
 	buf := new(bytes.Buffer)
 	io.Copy(buf, resp.Body)
 
+	// 将Response转为json
 	gResult := gjson.ParseBytes(buf.Bytes())
 
-	jsonHeader := gResult.Get("header")
-
-	searchResultHeader := Header{
-		ShortLimit:  jsonHeader.Get("short_limit").Int(),
-		LongLimit:   jsonHeader.Get("long_limit").Int(),
-		ShortRemain: jsonHeader.Get("short_remaining").Int(),
-		LongRemain:  jsonHeader.Get("long_remaining").Int(),
-	}
-
+	// 从Body中获取搜索结果
 	jsonResults := gResult.Get("results").Array()
 	searchResultData := make(map[string]string)
 	for _, r := range jsonResults {
 
-		if r.Get("header.similarity").Float() < 80 {
+		// 相似度低于一定程度则跳过
+		if r.Get("header.similarity").Float() < service.Similarity {
 			continue
 		}
 
+		// 从ext_urls中获取图片url
 		var urls []string
 		for _, u := range r.Get("data.ext_urls").Array() {
 			urls = append(urls, u.String())
 		}
 
-		if len(urls) == 0 {
-			continue
-		}
-
+		// 从sauce中获取图片url
 		source := r.Get("data.source").String()
-
 		if source != "" && strings.Contains(source, "https://") {
 			urls = append(urls, source)
 		}
 
+		// 如果没有任何url，则跳过
+		if len(urls) == 0 {
+			continue
+		}
+
+		// 将上述url进行平坦化处理
 		for _, u := range urls {
 
 			// 从P站多图Artwork的单图链接中提取Artwork链接
@@ -100,22 +85,21 @@ func Search(fileURL string) (Header, []Result, error) {
 			re := regexp.MustCompile(`www.pixiv.net/member_illust.php\?mode=medium&illust_id=([0-9]+)`)
 			u = re.ReplaceAllString(u, "www.pixiv.net/artworks/${1}")
 
-			searchResultData[u] = GetDatabaseFromURL(u)
+			searchResultData[u] = service.GetDatabaseFromURL(u)
 		}
 	}
 
-	var results []Result
-	From(searchResultData).Select(func(i interface{}) interface{} {
-		return Result{
-			Database: i.(KeyValue).Value.(string),
-			URL:      i.(KeyValue).Key.(string),
-		}
-	}).ToSlice(&results)
+	// 从Header中获取API剩余可用次数
+	jsonHeader := gResult.Get("header")
 
-	return searchResultHeader, results, err
+	return NewResult(jsonHeader.Get("short_limit").Int(),
+		jsonHeader.Get("long_limit").Int(),
+		jsonHeader.Get("short_remaining").Int(),
+		jsonHeader.Get("long_remaining").Int(),
+		searchResultData), err
 }
 
-func GetDatabaseFromURL(url string) string {
+func (service *Service) GetDatabaseFromURL(url string) string {
 	if strings.Contains(url, "www.pixiv.net") {
 		return "Pixiv"
 	} else if strings.Contains(url, "danbooru.donmai.us") {
@@ -170,5 +154,53 @@ func GetDatabaseFromURL(url string) string {
 		return "Fantia"
 	} else {
 		return "Unknown"
+	}
+}
+
+type Result struct {
+	Text        string
+	URLSelector *tb.ReplyMarkup
+	Success     bool
+}
+
+func NewResult(
+	shortLimit int64, longLimit int64, shortRemain int64, longRemain int64, searchResult map[string]string,
+) *Result {
+	selector := &tb.ReplyMarkup{}
+	var buttons []tb.Btn
+	for key, value := range searchResult {
+		buttons = append(buttons, tb.Btn{
+			Text: value,
+			URL:  key,
+		})
+	}
+	var rows []tb.Row
+	for i := 0; i < int(math.Ceil(float64(len(buttons))/3.0)); i++ {
+		if len(buttons)-(i+1)*3 < 0 {
+			rows = append(rows, selector.Row(buttons[i*3:]...))
+		} else {
+			rows = append(rows, selector.Row(buttons[i*3:i*3+3]...))
+		}
+	}
+	selector.Inline(rows...)
+
+	success := len(searchResult) != 0 && shortRemain > 0 && longRemain > 0
+
+	var text string
+
+	if shortRemain <= 0 {
+		text = "搜索过于频繁，已达到30秒内搜索次数上限\nSauceNAO搜索失败"
+	} else if longRemain <= 0 {
+		text = "搜索过于频繁，已达到24小时内搜索次数上限\nSauceNAO搜索失败"
+	} else if success {
+		text = "SauceNAO搜索完毕"
+	} else {
+		text = fmt.Sprintf("SauceNAO搜索失败（搜索结果相似度均低于%g）", Instance.Similarity)
+	}
+
+	return &Result{
+		Text:        text,
+		URLSelector: selector,
+		Success:     success,
 	}
 }
