@@ -13,87 +13,98 @@ import (
 
 const ascii2dURL string = "https://ascii2d.net/"
 const uploadURL string = "https://ascii2d.net/search/multi"
-const tempFolder string = "temp"
 
-type Result struct {
-	ThumbnailURL string
-	URL          string
-	Exist        bool
+type Service struct {
+	*Config
 }
 
-func Search(fileURL string) (Result, error) {
-	res, err := req.Get(fileURL)
+var Instance *Service
 
+func NewService(config *Config) *Service {
+	return &Service{Config: config}
+}
+
+func (service *Service) Search(fileURL string) (*Result, error) {
+
+	// 获取图片
+	res, err := req.Get(fileURL)
 	if err != nil {
-		return Result{}, err
+		return &Result{}, err
 	}
 
+	// 用该图片的SHA256作为文件名
 	bytes := sha256.Sum256([]byte(fileURL))
 	fileName := fmt.Sprintf("%x%s", string(bytes[:]), path.Ext(fileURL))
-	err = os.MkdirAll(tempFolder, os.ModeDir)
+
+	// 创建存放图片的临时文件夹
+	err = os.MkdirAll(service.Config.TempFolderPath, os.ModeDir)
 	if err != nil {
-		return Result{}, err
-	}
-	filePath := path.Join(tempFolder, fileName)
-	err = res.ToFile(filePath)
-	if err != nil {
-		return Result{}, err
+		return nil, err
 	}
 
+	// 储存图片至临时文件夹
+	filePath := path.Join(service.Config.TempFolderPath, fileName)
+	err = res.ToFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	// 重新读取图片
 	var file *os.File
 	file, err = os.Open(filePath)
 	if err != nil {
-		return Result{}, err
+		return nil, err
 	}
 
+	// 获取ascii2d网站的一次性token
 	var token string
 	token, err = getToken()
 	if err != nil {
-		return Result{}, err
+		return nil, err
 	}
 
-	param := req.Param{
-		"authenticity_token": token,
-		"utf8":               "✓",
-	}
-
+	// 上传图片并搜索
 	res, err = req.Post(uploadURL, req.FileUpload{
 		FileName:  fileName,
 		FieldName: "file",
 		File:      file,
-	}, param)
-
+	}, req.Param{
+		"authenticity_token": token,
+		"utf8":               "✓",
+	})
 	if err != nil {
-		return Result{}, err
+		return nil, err
 	}
-
 	if res.Response().StatusCode != 200 {
-		return Result{}, errors.New(res.Response().Status)
+		return nil, errors.New(res.Response().Status)
 	}
 
+	// 提取搜索结果html
 	doc, err := goquery.NewDocumentFromReader(res.Response().Body)
 	if err != nil {
-		return Result{}, err
+		return nil, err
 	}
-
 	first := doc.Find(".item-box:has(h6)").First()
-
 	url, exist1 := first.Find(".info-box .detail-box a").First().Attr("href")
 	thumbPath, exist2 := first.Find("img[loading=\"lazy\"]").Attr("src")
 
-	return Result{
-		ThumbnailURL: ascii2dURL + thumbPath,
-		URL:          url,
-		Exist:        exist1 && exist2,
-	}, err
+	if !exist1 || !exist2 {
+		return nil, err
+	}
+
+	return NewResult(ascii2dURL+thumbPath, url), err
 
 }
 
+// 获取ascii2d网站的一次性token
 func getToken() (string, error) {
 
 	res, err := req.Get(ascii2dURL)
 	if err != nil {
 		return "", err
+	}
+	if res.Response().StatusCode != 200 {
+		return "", errors.New(res.Response().Status)
 	}
 
 	doc, err := goquery.NewDocumentFromReader(res.Response().Body)
