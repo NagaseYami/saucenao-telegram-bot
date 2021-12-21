@@ -70,7 +70,11 @@ func CreateConfigFile(config *Config) {
 
 	var bytes []byte
 	bytes, err = yaml.Marshal(config)
-	file.Write(bytes)
+	_, err = file.Write(bytes)
+	if err != nil {
+		log.Error(err)
+		return
+	}
 
 	if err = file.Close(); err != nil {
 		log.Error(err)

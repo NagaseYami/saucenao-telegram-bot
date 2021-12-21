@@ -9,7 +9,6 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/imroc/req"
-	tb "gopkg.in/tucnak/telebot.v2"
 )
 
 const ascii2dURL string = "https://ascii2d.net/"
@@ -20,18 +19,21 @@ type Config struct {
 	TempFolderPath string `yaml:"TempFolderPath"`
 }
 
+type Result struct {
+	ThumbnailURL string
+	ImageURL     string
+}
+
 type Service struct {
 	*Config
 }
-
-var Instance *Service
 
 func (service *Service) Search(fileURL string) (*Result, error) {
 
 	// 获取图片
 	res, err := req.Get(fileURL)
 	if err != nil {
-		return &Result{}, err
+		return nil, err
 	}
 
 	// 用该图片的SHA256作为文件名
@@ -94,8 +96,10 @@ func (service *Service) Search(fileURL string) (*Result, error) {
 		return nil, err
 	}
 
-	return NewResult(ascii2dURL+thumbPath, url), err
-
+	return &Result{
+		ThumbnailURL: ascii2dURL + thumbPath,
+		ImageURL:     url,
+	}, err
 }
 
 // 获取ascii2d网站的一次性token
@@ -122,26 +126,4 @@ func (service *Service) getToken() (string, error) {
 	}
 
 	return token, err
-}
-
-type Result struct {
-	Photo       *tb.Photo
-	URLSelector *tb.ReplyMarkup
-}
-
-func NewResult(thumbnailURL string, url string) *Result {
-
-	photo := &tb.Photo{File: tb.FromURL(thumbnailURL)}
-	selector := &tb.ReplyMarkup{}
-	selector.Inline(tb.Row{
-		tb.Btn{
-			Text: "ascii2d搜索结果",
-			URL:  url,
-		},
-	})
-
-	return &Result{
-		Photo:       photo,
-		URLSelector: selector,
-	}
 }

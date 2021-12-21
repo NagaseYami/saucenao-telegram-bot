@@ -8,4 +8,3 @@ type Service struct {
 	*Config
 }
 
-var Instance *Service

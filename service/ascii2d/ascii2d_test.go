@@ -35,7 +35,7 @@ func TestSearch(t *testing.T) {
 	if result == nil {
 		t.Log("No result")
 	} else {
-		t.Log(result.URLSelector.InlineKeyboard[0][0].URL)
+		t.Log(result.ImageURL)
 	}
 	t.Log("Finish")
 }

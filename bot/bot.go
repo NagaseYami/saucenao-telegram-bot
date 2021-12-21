@@ -2,13 +2,13 @@ package bot
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/NagaseYami/saucenao-telegram-bot/service/ascii2d"
-	"github.com/NagaseYami/saucenao-telegram-bot/service/dice"
 	"github.com/NagaseYami/saucenao-telegram-bot/service/saucenao"
 	log "github.com/sirupsen/logrus"
 	tb "gopkg.in/tucnak/telebot.v2"
@@ -16,10 +16,10 @@ import (
 
 type Bot struct {
 	*Config
-	TelegramBot *tb.Bot
+	TelegramBot     *tb.Bot
+	saucenaoService *saucenao.Service
+	ascii2dService  *ascii2d.Service
 }
-
-var Instance *Bot
 
 func NewBot(config *Config) *Bot {
 	bot := &Bot{
@@ -32,6 +32,11 @@ func NewBot(config *Config) *Bot {
 
 func (bot *Bot) Init() {
 	var err error
+
+	if bot.TelegramBotToken == "" {
+		log.Error("缺少Telegram Bot Token，启动失败")
+		return
+	}
 
 	// TelegramBot初始化
 	bot.TelegramBot, err = tb.NewBot(tb.Settings{
@@ -48,17 +53,11 @@ func (bot *Bot) Init() {
 
 	//Handle Service
 	if bot.SaucenaoConfig.Enable {
-		saucenao.Instance = &saucenao.Service{Config: bot.SaucenaoConfig}
-
+		bot.saucenaoService = &saucenao.Service{Config: bot.SaucenaoConfig}
 	}
 
 	if bot.Ascii2dConfig.Enable {
-		ascii2d.Instance = &ascii2d.Service{Config: bot.Ascii2dConfig}
-	}
-
-	if bot.DiceConfig.Enable {
-		dice.Instance = &dice.Service{Config: bot.DiceConfig}
-
+		bot.ascii2dService = &ascii2d.Service{Config: bot.Ascii2dConfig}
 	}
 
 	bot.TelegramBot.Handle(tb.OnPhoto, func(m *tb.Message) {
@@ -82,7 +81,9 @@ func (bot *Bot) Init() {
 			go bot.featureDisabled(m)
 		}
 	})
+}
 
+func (bot *Bot) Start() {
 	bot.TelegramBot.Start()
 }
 
@@ -106,7 +107,10 @@ func (bot *Bot) saucenao(requestMessage *tb.Message) {
 		}
 		go func() {
 			time.Sleep(bot.DeleteMessageInterval)
-			bot.TelegramBot.Delete(msg)
+			err := bot.TelegramBot.Delete(msg)
+			if err != nil {
+				log.Warn(err)
+			}
 		}()
 		return
 	}
@@ -127,28 +131,59 @@ func (bot *Bot) saucenao(requestMessage *tb.Message) {
 
 	// Search on SauceNAO
 	var result *saucenao.Result
-	result, err = saucenao.Instance.Search(fileURL)
+	result, err = bot.saucenaoService.Search(fileURL)
 
 	if err != nil {
 		log.Error(err)
 		return
 	}
 
-	msg, err = bot.TelegramBot.Edit(msg, result.Text, result.URLSelector)
-	if err != nil {
-		log.Warn(err)
-		return
+	selector := &tb.ReplyMarkup{}
+	var buttons []tb.Btn
+	for key, value := range result.SearchResult {
+		buttons = append(buttons, tb.Btn{
+			Text: value,
+			URL:  key,
+		})
 	}
+	var rows []tb.Row
+	for i := 0; i < int(math.Ceil(float64(len(buttons))/3.0)); i++ {
+		if len(buttons)-(i+1)*3 < 0 {
+			rows = append(rows, selector.Row(buttons[i*3:]...))
+		} else {
+			rows = append(rows, selector.Row(buttons[i*3:i*3+3]...))
+		}
+	}
+	selector.Inline(rows...)
 
-	if !result.Success {
+	var text string
+
+	if result.ShortRemain <= 0 {
+		text = "搜索过于频繁，已达到30秒内搜索次数上限\nSauceNAO搜索失败"
+	} else if result.LongRemain <= 0 {
+		text = "搜索过于频繁，已达到24小时内搜索次数上限\nSauceNAO搜索失败"
+	} else if len(result.SearchResult) != 0 {
+		text = "SauceNAO搜索完毕"
+	} else {
+		text = fmt.Sprintf("SauceNAO搜索失败（搜索结果相似度均低于%g）", bot.SaucenaoConfig.Similarity)
+
 		go func() {
 			time.Sleep(bot.DeleteMessageInterval)
-			bot.TelegramBot.Delete(msg)
+			err := bot.TelegramBot.Delete(msg)
+			if err != nil {
+				log.Warn(err)
+			}
 		}()
 
 		if bot.Ascii2dConfig.Enable {
 			go bot.ascii2d(requestMessage, fileURL)
 		}
+	}
+
+	msg, err = bot.TelegramBot.Edit(msg, text, selector)
+	if err != nil {
+		log.Warn(err)
+		return
 	}
 }
 
@@ -156,12 +191,12 @@ func (bot *Bot) ascii2d(requestMessage *tb.Message, fileURL string) {
 
 	msg, err := bot.TelegramBot.Reply(requestMessage, "ascii2d搜索中...")
 	if err != nil {
-		log.Warn(err)
+		log.Error(err)
 		return
 	}
 
 	var result *ascii2d.Result
-	result, err = ascii2d.Instance.Search(fileURL)
+	result, err = bot.ascii2dService.Search(fileURL)
 	if err != nil {
 		log.Error(err)
 		return
@@ -176,10 +211,21 @@ func (bot *Bot) ascii2d(requestMessage *tb.Message, fileURL string) {
 		}
 		go func() {
 			time.Sleep(bot.DeleteMessageInterval)
-			bot.TelegramBot.Delete(msg)
+			err := bot.TelegramBot.Delete(msg)
+			if err != nil {
+
+			}
 		}()
 	} else {
-		_, err = bot.TelegramBot.Reply(requestMessage, result.Photo, result.URLSelector)
+		photo := &tb.Photo{File: tb.FromURL(result.ThumbnailURL)}
+		selector := &tb.ReplyMarkup{}
+		selector.Inline(tb.Row{
+			tb.Btn{
+				Text: "ascii2d搜索结果",
+				URL:  result.ImageURL,
+			},
+		})
+		_, err = bot.TelegramBot.Reply(requestMessage, photo, selector)
 		if err != nil {
 			log.Warn(err)
 			return
@@ -248,7 +294,13 @@ func (bot *Bot) featureDisabled(requestMessage *tb.Message) {
 	}
 	go func() {
 		time.Sleep(bot.DeleteMessageInterval)
-		bot.TelegramBot.Delete(requestMessage)
-		bot.TelegramBot.Delete(msg)
+		err := bot.TelegramBot.Delete(requestMessage)
+		if err != nil {
+			log.Warn(err)
+		}
+		err = bot.TelegramBot.Delete(msg)
+		if err != nil {
+			log.Warn()
+		}
 	}()
 }

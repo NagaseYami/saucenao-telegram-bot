@@ -10,5 +10,6 @@ func main() {
 	flag.Parse()
 
 	config := bot.LoadConfig(*configFileFlag)
-	bot.Instance = bot.NewBot(config)
+	bot := bot.NewBot(config)
+	bot.Start()
 }
