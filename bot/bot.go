@@ -34,8 +34,7 @@ func (bot *Bot) Init() {
 	var err error
 
 	if bot.TelegramBotToken == "" {
-		log.Error("缺少Telegram Bot Token，启动失败")
-		return
+		log.Fatal("缺少Telegram Bot Token，启动失败")
 	}
 
 	// TelegramBot初始化

@@ -28,7 +28,8 @@ func LoadConfig(configFilePath string) *Config {
 	if _, err = os.Stat(configFilePath); errors.Is(err, os.ErrNotExist) {
 		config = NewConfig()
 		CreateConfigFile(config)
-		return config
+		log.Info("没有找到配置文件，已在同目录自动生成，请编辑后再次启动")
+		os.Exit(0)
 	}
 
 	var bytes []byte
