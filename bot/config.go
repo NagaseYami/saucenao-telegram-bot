@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"errors"
 	"os"
 	"time"
 
@@ -21,15 +22,17 @@ type Config struct {
 }
 
 func LoadConfig(configFilePath string) *Config {
+	var err error
 	config := &Config{}
 
-	if configFilePath == "" {
+	if _, err = os.Stat(configFilePath); errors.Is(err, os.ErrNotExist) {
 		config = NewConfig()
 		CreateConfigFile(config)
 		return config
 	}
 
-	bytes, err := os.ReadFile(configFilePath)
+	var bytes []byte
+	bytes, err = os.ReadFile(configFilePath)
 	if err != nil {
 		log.Error(err)
 		return nil
