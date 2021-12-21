@@ -74,6 +74,13 @@ func (bot *Bot) Init() {
 			go bot.featureDisabled(m)
 		}
 	})
+	bot.TelegramBot.Handle("/ascii2d", func(m *tb.Message) {
+		if bot.SaucenaoConfig.Enable {
+			go bot.ascii2d(m)
+		} else {
+			go bot.featureDisabled(m)
+		}
+	})
 	bot.TelegramBot.Handle("/dice", func(m *tb.Message) {
 		if bot.DiceConfig.Enable {
 			go bot.dice(m)
@@ -87,10 +94,7 @@ func (bot *Bot) Start() {
 	bot.TelegramBot.Start()
 }
 
-func (bot *Bot) saucenao(requestMessage *tb.Message) {
-	var msg *tb.Message
-	var err error
-
+func (bot *Bot) getPhotoFileURL(requestMessage *tb.Message) string {
 	// Get photo file ID
 	var fileID string
 	if requestMessage.Photo != nil {
@@ -100,10 +104,9 @@ func (bot *Bot) saucenao(requestMessage *tb.Message) {
 	}
 
 	if fileID == "" {
-		msg, err = bot.TelegramBot.Reply(requestMessage, "需要图片")
+		msg, err := bot.TelegramBot.Reply(requestMessage, "需要图片")
 		if err != nil {
 			log.Warn(err)
-			return
 		}
 		go func() {
 			time.Sleep(bot.DeleteMessageInterval)
@@ -112,8 +115,23 @@ func (bot *Bot) saucenao(requestMessage *tb.Message) {
 				log.Warn(err)
 			}
 		}()
-		return
+
+		return ""
 	}
+
+	// Get photo file URL
+	url, err := bot.TelegramBot.FileURLByID(fileID)
+	if err != nil {
+		log.Warn(err)
+	}
+	return url
+}
+
+func (bot *Bot) saucenao(requestMessage *tb.Message) {
+	var msg *tb.Message
+	var err error
+
+	url := bot.getPhotoFileURL(requestMessage)
 
 	msg, err = bot.TelegramBot.Reply(requestMessage, "SauceNAO搜索中...")
 	if err != nil {
@@ -121,17 +139,9 @@ func (bot *Bot) saucenao(requestMessage *tb.Message) {
 		return
 	}
 
-	// Get photo file URL
-	var fileURL string
-	fileURL, err = bot.TelegramBot.FileURLByID(fileID)
-	if err != nil {
-		log.Error(err)
-		return
-	}
-
 	// Search on SauceNAO
 	var result *saucenao.Result
-	result, err = bot.saucenaoService.Search(fileURL)
+	result, err = bot.saucenaoService.Search(url)
 
 	if err != nil {
 		log.Error(err)
@@ -176,7 +186,7 @@ func (bot *Bot) saucenao(requestMessage *tb.Message) {
 		}()
 
 		if bot.Ascii2dConfig.Enable {
-			go bot.ascii2d(requestMessage, fileURL)
+			go bot.ascii2dWithFileURL(requestMessage, url)
 		}
 	}
 
@@ -187,7 +197,12 @@ func (bot *Bot) saucenao(requestMessage *tb.Message) {
 	}
 }
 
-func (bot *Bot) ascii2d(requestMessage *tb.Message, fileURL string) {
+func (bot *Bot) ascii2d(requestMessage *tb.Message) {
+	url := bot.getPhotoFileURL(requestMessage)
+	bot.ascii2dWithFileURL(requestMessage, url)
+}
+
+func (bot *Bot) ascii2dWithFileURL(requestMessage *tb.Message, fileURL string) {
 	msg, err := bot.TelegramBot.Reply(requestMessage, "ascii2d搜索中...")
 	if err != nil {
 		log.Error(err)
@@ -223,6 +238,10 @@ func (bot *Bot) ascii2d(requestMessage *tb.Message, fileURL string) {
 				URL:  result.ImageURL,
 			},
 		})
+		err = bot.TelegramBot.Delete(msg)
+		if err != nil {
+			log.Warn(err)
+		}
 		_, err = bot.TelegramBot.Reply(requestMessage, photo, selector)
 		if err != nil {
 			log.Warn(err)
