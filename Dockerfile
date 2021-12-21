@@ -7,6 +7,8 @@ RUN go build main.go
 
 FROM alpine
 
-COPY --from=builder /go/src/app/main /root/main
+COPY --from=builder /go/src/app/main /app/main
 
-CMD ["/root/main"]
+WORKDIR /app
+
+CMD ["main"]
