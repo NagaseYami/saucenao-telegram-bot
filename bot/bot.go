@@ -51,7 +51,7 @@ func (bot *Bot) Init() {
 		return
 	}
 
-	//Handle Service
+	// Handle Service
 	if bot.SaucenaoConfig.Enable {
 		bot.saucenaoService = &saucenao.Service{Config: bot.SaucenaoConfig}
 	}
@@ -188,7 +188,6 @@ func (bot *Bot) saucenao(requestMessage *tb.Message) {
 }
 
 func (bot *Bot) ascii2d(requestMessage *tb.Message, fileURL string) {
-
 	msg, err := bot.TelegramBot.Reply(requestMessage, "ascii2d搜索中...")
 	if err != nil {
 		log.Error(err)
@@ -213,7 +212,6 @@ func (bot *Bot) ascii2d(requestMessage *tb.Message, fileURL string) {
 			time.Sleep(bot.DeleteMessageInterval)
 			err := bot.TelegramBot.Delete(msg)
 			if err != nil {
-
 			}
 		}()
 	} else {

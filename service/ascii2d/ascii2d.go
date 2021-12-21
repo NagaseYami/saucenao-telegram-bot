@@ -11,8 +11,10 @@ import (
 	"github.com/imroc/req"
 )
 
-const ascii2dURL string = "https://ascii2d.net/"
-const uploadURL string = "https://ascii2d.net/search/multi"
+const (
+	ascii2dURL string = "https://ascii2d.net/"
+	uploadURL  string = "https://ascii2d.net/search/multi"
+)
 
 type Config struct {
 	Enable         bool   `yaml:"Enable"`
@@ -29,7 +31,6 @@ type Service struct {
 }
 
 func (service *Service) Search(fileURL string) (*Result, error) {
-
 	// 获取图片
 	res, err := req.Get(fileURL)
 	if err != nil {
@@ -104,7 +105,6 @@ func (service *Service) Search(fileURL string) (*Result, error) {
 
 // 获取ascii2d网站的一次性token
 func (service *Service) getToken() (string, error) {
-
 	res, err := req.Get(ascii2dURL)
 	if err != nil {
 		return "", err
