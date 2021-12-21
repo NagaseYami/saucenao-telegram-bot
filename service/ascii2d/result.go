@@ -3,8 +3,8 @@ package ascii2d
 import tb "gopkg.in/tucnak/telebot.v2"
 
 type Result struct {
-	Photo          *tb.Photo
-	URLSelector    *tb.ReplyMarkup
+	Photo       *tb.Photo
+	URLSelector *tb.ReplyMarkup
 }
 
 func NewResult(thumbnailURL string, url string) *Result {
@@ -19,7 +19,7 @@ func NewResult(thumbnailURL string, url string) *Result {
 	})
 
 	return &Result{
-		Photo:          photo,
-		URLSelector:    selector,
+		Photo:       photo,
+		URLSelector: selector,
 	}
 }

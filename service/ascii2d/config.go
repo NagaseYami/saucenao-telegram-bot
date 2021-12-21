@@ -1,13 +1,13 @@
 package ascii2d
 
 type Config struct {
-	Enable bool
+	Enable         bool
 	TempFolderPath string
 }
 
-func NewConfig() *Config{
+func NewConfig() *Config {
 	return &Config{
-		Enable: false,
+		Enable:         false,
 		TempFolderPath: "temp",
 	}
 }
