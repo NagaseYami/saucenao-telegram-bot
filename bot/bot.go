@@ -175,7 +175,7 @@ func (bot *Bot) saucenao(requestMessage *tb.Message) {
 	} else if len(result.SearchResult) != 0 {
 		text = "SauceNAO搜索完毕"
 	} else {
-		text = fmt.Sprintf("SauceNAO搜索失败（搜索结果相似度均低于%g）", bot.SaucenaoConfig.Similarity)
+		text = fmt.Sprintf("SauceNAO搜索失败（搜索结果相似度过低）")
 
 		go func() {
 			time.Sleep(bot.DeleteMessageInterval)
