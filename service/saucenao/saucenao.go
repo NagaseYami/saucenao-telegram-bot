@@ -21,7 +21,7 @@ const (
 	apiURL           string = "https://saucenao.com/search.php?api_key=%s&db=999&output_type=2&url=%s"
 	nhentaiURL       string = "https://nhentai.net"
 	nhentaiSearchURL string = "https://nhentai.net/search/?q=%s"
-	ehentaiSearchURL string = "https://e-hentai.org/?f_search=%s&f_sname=on"
+	ehentaiSearchURL string = "https://e-hentai.org/?f_search=%s&advsearch=1&f_sname=on"
 )
 
 // https://saucenao.com/tools/examples/api/index_details.txt
@@ -220,10 +220,12 @@ func (service *Service) getEHentaiGallery(engName string, jpName string) string 
 		return ""
 	}
 
-	result, exists := doc.Find(".glname a").First().Attr("href")
-	if !exists {
-		return ""
-	}
+	var result string
+	doc.Find(".glname a").Each(func(i int, selection *goquery.Selection) {
+		if selection.Find(".glink").First().Text() == name {
+			result, _ = selection.Attr("href")
+		}
+	})
 
 	return result
 }
