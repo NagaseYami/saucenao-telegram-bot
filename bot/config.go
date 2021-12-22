@@ -53,9 +53,8 @@ func NewConfig() *Config {
 		TelegramBotToken:      "",
 		DeleteMessageInterval: 5 * time.Second,
 		SaucenaoConfig: &saucenao.Config{
-			Enable:     false,
-			ApiKey:     "",
-			Similarity: 80,
+			Enable: false,
+			ApiKey: "",
 		},
 		Ascii2dConfig: &ascii2d.Config{
 			Enable:         true,

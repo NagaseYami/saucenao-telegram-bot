@@ -34,8 +34,8 @@ docker run -d \
   -v /path/to/config.yaml:/app/config.yaml \
   --name telegram-bot \
   --restart unless-stopped \
-  -e HTTP_PROXY=http://localhost:8080
-  -e HTTPS_PROXY=http://localhost:8080
+  -e HTTP_PROXY=http://yourproxy:8080
+  -e HTTPS_PROXY=http://youproxy:8080
   nagaseyami/telegram-bot:latest
 ```
 
@@ -65,8 +65,6 @@ SaucenaoConfig:
   Enable: false
   # ApiKey可以去SauceNAO注册账号免费申请
   ApiKey: ""
-  # 相似度，0~100，建议80，低于该数值的搜索结果会被丢弃
-  Similarity: 80
 
 # Ascii2d
 Ascii2dConfig:

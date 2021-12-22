@@ -71,9 +71,8 @@ var saucenaoDatabaseIndexList = map[string]int64{
 }
 
 type Config struct {
-	Enable     bool    `yaml:"Enable"`
-	ApiKey     string  `yaml:"ApiKey"`
-	Similarity float64 `yaml:"Similarity"`
+	Enable bool   `yaml:"Enable"`
+	ApiKey string `yaml:"ApiKey"`
 }
 
 type Result struct {
