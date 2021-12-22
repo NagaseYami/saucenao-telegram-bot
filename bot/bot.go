@@ -152,8 +152,8 @@ func (bot *Bot) saucenao(requestMessage *tb.Message) {
 	var buttons []tb.Btn
 	for key, value := range result.SearchResult {
 		buttons = append(buttons, tb.Btn{
-			Text: value,
-			URL:  key,
+			Text: key,
+			URL:  value,
 		})
 	}
 	var rows []tb.Row

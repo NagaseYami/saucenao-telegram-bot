@@ -10,11 +10,65 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/PuerkitoBio/goquery"
+	"github.com/ahmetb/go-linq/v3"
+	"github.com/imroc/req"
 	log "github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 )
 
-const apiURL string = "https://saucenao.com/search.php?api_key=%s&db=999&output_type=2&numres=9&url=%s"
+const (
+	apiURL           string = "https://saucenao.com/search.php?api_key=%s&db=999&output_type=2&url=%s"
+	nhentaiURL       string = "https://nhentai.net"
+	nhentaiSearchURL string = "https://nhentai.net/search/?q=%s"
+	ehentaiSearchURL string = "https://e-hentai.org/?f_search=%s&f_sname=on"
+)
+
+// https://saucenao.com/tools/examples/api/index_details.txt
+var saucenaoDatabaseIndexList = map[string]int64{
+	"h-mags":          0,
+	"h-anime":         1,
+	"hcg":             2,
+	"ddb-objects":     3,
+	"ddb-samples":     4,
+	"Pixiv":           5,
+	"PixivHistorical": 6,
+	"anime":           7,
+	"NicoNico Seiga":  8,
+	"Danbooru":        9,
+	"drawr":           10,
+	"Nijie":           11,
+	"yande.re":        12,
+	"animeop":         13,
+	"IMDb":            14,
+	"Shutterstock":    15,
+	"FAKKU":           16,
+	"nhentai":         18,
+	"2d_market":       19,
+	"medibang":        20,
+	"Anime":           21,
+	"H-Anime":         22,
+	"Movies":          23,
+	"Shows":           24,
+	"gelbooru":        25,
+	"konochan":        26,
+	"sankaku":         27,
+	"anime-pictures":  28,
+	"e621":            29,
+	"idol complex":    30,
+	"bcy illust":      31,
+	"bcy cosplay":     32,
+	"portalgraphics":  33,
+	"dA":              34,
+	"pawoo":           35,
+	"madokami":        36,
+	"mangadex":        37,
+	"ehentai":         38,
+	"ArtStation":      39,
+	"FurAffinity":     40,
+	"Twitter":         41,
+	"Furry Network":   42,
+}
 
 type Config struct {
 	Enable     bool    `yaml:"Enable"`
@@ -50,54 +104,74 @@ func (service *Service) Search(fileURL string) (*Result, error) {
 		return nil, err
 	}
 
-	// 将Response转为json
+	type ArtworkData struct {
+		Similarity float64
+		URL        string
+	}
+
+	result := make(map[int64][]ArtworkData)
 	gResult := gjson.ParseBytes(buf.Bytes())
 
-	// 从Body中获取搜索结果
+	// 相似度底线要求
+	minimumSimilarity := gResult.Get("header.minimum_similarity").Float()
+
+	// 遍历全部结果
 	jsonResults := gResult.Get("results").Array()
-	searchResultData := make(map[string]string)
 	for _, r := range jsonResults {
 
-		// 相似度低于一定程度则跳过
-		if r.Get("header.similarity").Float() < service.Similarity {
+		similarity := r.Get("header.similarity").Float()
+
+		// 相似度低于底线则跳过
+		if similarity < minimumSimilarity {
 			continue
 		}
 
-		// 从ext_urls中获取图片url
-		var urls []string
-		for _, u := range r.Get("data.ext_urls").Array() {
-			urls = append(urls, u.String())
-		}
+		dbIndex := r.Get("header.index_id").Int()
+		var extURLs []string
+		linq.From(r.Get("data.ext_urls").Array()).SelectT(func(r gjson.Result) string { return r.String() }).ToSlice(&extURLs)
+		engName := r.Get("data.eng_name").String()
+		jpName := r.Get("data.jp_name").String()
 
-		// 从sauce中获取图片url
-		source := r.Get("data.source").String()
-		if source != "" && strings.Contains(source, "https://") {
-			urls = append(urls, source)
-		}
-
-		// 如果没有任何url，则跳过
-		if len(urls) == 0 {
-			continue
-		}
-
-		// 将上述url进行平坦化处理
-		for _, u := range urls {
-
-			// 从P站多图Artwork的单图链接中提取Artwork链接
-			if strings.Contains(u, "https://i.pximg.net") {
-				fileName := path.Base(u)
-				noExt := strings.Replace(fileName, path.Ext(fileName), "", 1)
-				re := regexp.MustCompile(`_p[0-9]+`)
-				pixivID := re.ReplaceAllString(noExt, "")
-				u = fmt.Sprintf("https://www.pixiv.net/artworks/%s", pixivID)
+		// 获取URL
+		var artworkURL string
+		switch dbIndex {
+		case saucenaoDatabaseIndexList["ehentai"]:
+			artworkURL = service.getEHentaiGallery(engName, jpName)
+		case saucenaoDatabaseIndexList["nhentai"]:
+			artworkURL = service.getNHentaiGallery(engName, jpName)
+		case saucenaoDatabaseIndexList["Pixiv"]:
+			artworkURL = service.getPixivArtwork(extURLs[0])
+		default:
+			if len(extURLs) > 0 {
+				// 多个ext_urls时只取第一个
+				artworkURL = extURLs[0]
+			} else {
+				log.Warn("遇到了未知的没有ext_urls的Database：%d\n被搜索的图片URL：%s", dbIndex, fileURL)
+				continue
 			}
-
-			// 将旧格式P站链接转换为新格式P站链接
-			re := regexp.MustCompile(`www.pixiv.net/member_illust.php\?mode=medium&illust_id=([0-9]+)`)
-			u = re.ReplaceAllString(u, "www.pixiv.net/artworks/${1}")
-
-			searchResultData[u] = service.GetDatabaseFromURL(u)
 		}
+
+		if artworkURL == "" {
+			continue
+		}
+
+		result[dbIndex] = append(result[dbIndex], ArtworkData{Similarity: similarity, URL: artworkURL})
+	}
+
+	// 去重
+	searchResult := make(map[string]string)
+	for _, artworks := range result {
+		var fixed string
+		if len(artworks) > 1 {
+			var ordered []ArtworkData
+			linq.From(artworks).OrderByDescendingT(func(data ArtworkData) float64 {
+				return data.Similarity
+			}).ToSlice(&ordered)
+			fixed = ordered[0].URL
+		} else {
+			fixed = artworks[0].URL
+		}
+		searchResult[service.getDatabaseFromURL(fixed)] = fixed
 	}
 
 	// 从Header中获取API剩余可用次数
@@ -106,11 +180,86 @@ func (service *Service) Search(fileURL string) (*Result, error) {
 	return &Result{
 		ShortRemain:  jsonHeader.Get("short_remaining").Int(),
 		LongRemain:   jsonHeader.Get("long_remaining").Int(),
-		SearchResult: searchResultData,
+		SearchResult: searchResult,
 	}, err
 }
 
-func (service *Service) GetDatabaseFromURL(url string) string {
+func (service *Service) getPixivArtwork(extURL string) string {
+	// 从P站多图Artwork的单图链接中提取Artwork链接
+	if strings.Contains(extURL, "https://i.pximg.net") {
+		fileName := path.Base(extURL)
+		noExt := strings.Replace(fileName, path.Ext(fileName), "", 1)
+		re := regexp.MustCompile(`_p[0-9]+`)
+		pixivID := re.ReplaceAllString(noExt, "")
+		extURL = fmt.Sprintf("https://www.pixiv.net/artworks/%s", pixivID)
+	}
+
+	// 将旧格式P站链接转换为新格式P站链接
+	re := regexp.MustCompile(`www.pixiv.net/member_illust.php\?mode=medium&illust_id=([0-9]+)`)
+	extURL = re.ReplaceAllString(extURL, "www.pixiv.net/artworks/${1}")
+
+	return extURL
+}
+
+func (service *Service) getEHentaiGallery(engName string, jpName string) string {
+	if engName == "" && jpName == "" {
+		return ""
+	}
+	name := engName
+	if name == "" {
+		name = jpName
+	}
+	resp, err := req.Get(fmt.Sprintf(ehentaiSearchURL, url.PathEscape(name)))
+	if err != nil {
+		log.Warnf("e-hentai搜索失败\n搜索关键词%s\n错误信息%s", name, err.Error())
+		return ""
+	}
+
+	doc, err := goquery.NewDocumentFromReader(resp.Response().Body)
+	if err != nil {
+		log.Warnf("提取e-hentai搜索结果HTML时发生错误：%s", err.Error())
+		return ""
+	}
+
+	result, exists := doc.Find(".glname a").First().Attr("href")
+	if !exists {
+		return ""
+	}
+
+	return result
+}
+
+func (service *Service) getNHentaiGallery(engName string, jpName string) string {
+	if engName == "" && jpName == "" {
+		return ""
+	}
+
+	name := engName
+	if name == "" {
+		name = jpName
+	}
+
+	resp, err := req.Get(fmt.Sprintf(nhentaiSearchURL, url.PathEscape(name)))
+	if err != nil {
+		log.Warnf("nhentai搜索失败\n搜索关键词%s\n错误信息%s", name, err.Error())
+		return ""
+	}
+
+	doc, err := goquery.NewDocumentFromReader(resp.Response().Body)
+	if err != nil {
+		log.Warnf("提取nhentai搜索结果HTML时发生错误：%s", err.Error())
+		return ""
+	}
+
+	result, exists := doc.Find(".gallery a").First().Attr("href")
+	if !exists {
+		return ""
+	}
+
+	return nhentaiURL + result
+}
+
+func (service *Service) getDatabaseFromURL(url string) string {
 	if strings.Contains(url, "www.pixiv.net") {
 		return "Pixiv"
 	} else if strings.Contains(url, "danbooru.donmai.us") {
@@ -161,6 +310,10 @@ func (service *Service) GetDatabaseFromURL(url string) string {
 		return "e621"
 	} else if strings.Contains(url, "exhentai.org") {
 		return "exhentai"
+	} else if strings.Contains(url, "e-hentai.org") {
+		return "e-hentai"
+	} else if strings.Contains(url, "nhentai.net") {
+		return "nhentai"
 	} else if strings.Contains(url, "fantia.jp") {
 		return "Fantia"
 	} else {
