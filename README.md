@@ -50,6 +50,9 @@ go build main.go
 初次启动之后会自动在同目录下生成一个`config.yaml`文件
 
 ```yaml
+# Debug模式，会记录更多log
+DebugMode: false
+
 # Telegram Bot Token
 # https://core.telegram.org/bots#6-botfather
 TelegramBotToken: ""
