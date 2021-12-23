@@ -1,10 +1,7 @@
 package saucenao
 
 import (
-	"bytes"
 	"fmt"
-	"io"
-	"net/http"
 	"net/url"
 	"path"
 	"regexp"
@@ -85,22 +82,17 @@ type Service struct {
 	*Config
 }
 
-func (service *Service) Search(fileURL string) (*Result, error) {
+func (service *Service) Search(fileURL string) *Result {
 	// 访问API
-	resp, err := http.Get(fmt.Sprintf(apiURL, service.ApiKey, url.PathEscape(fileURL)))
+	apiURL := fmt.Sprintf(apiURL, service.ApiKey, url.PathEscape(fileURL))
+	log.Debugf("开始SauceNAO搜索：%s", apiURL)
+	resp, err := req.Get(apiURL)
 	if err != nil {
-		return nil, err
+		log.Error(err)
+		return nil
 	}
-	defer func() {
-		err = resp.Body.Close()
-		if err != nil {
-			log.Error(err)
-		}
-	}()
-	buf := new(bytes.Buffer)
-	_, err = io.Copy(buf, resp.Body)
-	if err != nil {
-		return nil, err
+	if resp.Response().StatusCode != 200 {
+		log.Errorf("访问SauceNAO搜索时收到了200以外的StatusCode：%s", resp.Response().Status)
 	}
 
 	type ArtworkData struct {
@@ -109,19 +101,23 @@ func (service *Service) Search(fileURL string) (*Result, error) {
 	}
 
 	result := make(map[int64][]ArtworkData)
-	gResult := gjson.ParseBytes(buf.Bytes())
+	gResult := gjson.ParseBytes(resp.Bytes())
 
 	// 相似度底线要求
 	minimumSimilarity := gResult.Get("header.minimum_similarity").Float()
+	log.Debugf("搜索结果的相似度底线：%g", minimumSimilarity)
 
 	// 遍历全部结果
 	jsonResults := gResult.Get("results").Array()
-	for _, r := range jsonResults {
+	for i, r := range jsonResults {
 
+		log.Debugf("结果%d：", i+1)
 		similarity := r.Get("header.similarity").Float()
+		log.Debugf("相似度%g", similarity)
 
 		// 相似度低于底线则跳过
 		if similarity < minimumSimilarity {
+			log.Debug("相似度过低，跳过")
 			continue
 		}
 
@@ -130,6 +126,11 @@ func (service *Service) Search(fileURL string) (*Result, error) {
 		linq.From(r.Get("data.ext_urls").Array()).SelectT(func(r gjson.Result) string { return r.String() }).ToSlice(&extURLs)
 		engName := r.Get("data.eng_name").String()
 		jpName := r.Get("data.jp_name").String()
+
+		log.Debugf("DataBaseIndex:%d", dbIndex)
+		log.Debugf("ExtURLs:%s", extURLs)
+		log.Debugf("EngName%s", engName)
+		log.Debugf("JpName%s", jpName)
 
 		// 获取URL
 		var artworkURL string
@@ -180,7 +181,7 @@ func (service *Service) Search(fileURL string) (*Result, error) {
 		ShortRemain:  jsonHeader.Get("short_remaining").Int(),
 		LongRemain:   jsonHeader.Get("long_remaining").Int(),
 		SearchResult: searchResult,
-	}, err
+	}
 }
 
 func (service *Service) getPixivArtwork(extURL string) string {
@@ -208,15 +209,20 @@ func (service *Service) getEHentaiGallery(engName string, jpName string) string 
 	if name == "" {
 		name = jpName
 	}
-	resp, err := req.Get(fmt.Sprintf(ehentaiSearchURL, url.PathEscape(name)))
+	u := fmt.Sprintf(ehentaiSearchURL, url.PathEscape(name))
+	resp, err := req.Get(u)
 	if err != nil {
-		log.Warnf("e-hentai搜索失败\n搜索关键词%s\n错误信息%s", name, err.Error())
+		log.Errorf("e-hentai搜索失败\n搜索链接：%s\n错误信息：%s", u, err)
+		return ""
+	}
+	if resp.Response().StatusCode != 200 {
+		log.Errorf("访问%s时收到了200以外的StatusCode：%s", u, resp.Response().Status)
 		return ""
 	}
 
 	doc, err := goquery.NewDocumentFromReader(resp.Response().Body)
 	if err != nil {
-		log.Warnf("提取e-hentai搜索结果HTML时发生错误：%s", err.Error())
+		log.Errorf("提取e-hentai搜索结果HTML时发生错误：%s", err)
 		return ""
 	}
 
@@ -240,15 +246,20 @@ func (service *Service) getNHentaiGallery(engName string, jpName string) string 
 		name = jpName
 	}
 
-	resp, err := req.Get(fmt.Sprintf(nhentaiSearchURL, url.PathEscape(name)))
+	u := fmt.Sprintf(nhentaiSearchURL, url.PathEscape(name))
+	resp, err := req.Get(u)
 	if err != nil {
-		log.Warnf("nhentai搜索失败\n搜索关键词%s\n错误信息%s", name, err.Error())
+		log.Errorf("nhentai搜索失败\n搜索链接：%s\n错误信息：%s", u, err)
+		return ""
+	}
+	if resp.Response().StatusCode != 200 {
+		log.Errorf("访问%s时收到了200以外的StatusCode：%s", u, resp.Response().Status)
 		return ""
 	}
 
 	doc, err := goquery.NewDocumentFromReader(resp.Response().Body)
 	if err != nil {
-		log.Warnf("提取nhentai搜索结果HTML时发生错误：%s", err.Error())
+		log.Errorf("提取nhentai搜索结果HTML时发生错误：%s", err)
 		return ""
 	}
 

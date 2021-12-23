@@ -25,8 +25,6 @@ func NewBot(config *Config) *Bot {
 	bot := &Bot{
 		Config: config,
 	}
-
-	bot.Init()
 	return bot
 }
 
@@ -46,8 +44,7 @@ func (bot *Bot) Init() {
 		Poller: &tb.LongPoller{Timeout: 10 * time.Second},
 	})
 	if err != nil {
-		log.Fatal(err)
-		return
+		log.Fatalf("Telegram Bot 初始化时发生错误：%s", err)
 	}
 
 	// Handle Service
@@ -59,39 +56,33 @@ func (bot *Bot) Init() {
 		bot.ascii2dService = &ascii2d.Service{Config: bot.Ascii2dConfig}
 	}
 
-	bot.TelegramBot.Handle(tb.OnPhoto, func(m *tb.Message) {
-		if bot.SaucenaoConfig.Enable {
-			go bot.saucenao(m)
-		} else {
-			go bot.featureDisabled(m)
-		}
-	})
-	bot.TelegramBot.Handle("/sauce", func(m *tb.Message) {
-		if bot.SaucenaoConfig.Enable {
-			go bot.saucenao(m)
-		} else {
-			go bot.featureDisabled(m)
-		}
-	})
-	bot.TelegramBot.Handle("/ascii2d", func(m *tb.Message) {
-		if bot.SaucenaoConfig.Enable {
-			go bot.ascii2d(m)
-		} else {
-			go bot.featureDisabled(m)
-		}
-	})
-	bot.TelegramBot.Handle("/dice", func(m *tb.Message) {
-		if bot.DiceConfig.Enable {
-			go bot.dice(m)
-		} else {
-			go bot.featureDisabled(m)
-		}
-	})
+	bot.TelegramBot.Handle(tb.OnPhoto, bot.feature(bot.saucenao, bot.SaucenaoConfig.Enable))
+	bot.TelegramBot.Handle("/sauce", bot.feature(bot.saucenao, bot.SaucenaoConfig.Enable))
+	bot.TelegramBot.Handle("/ascii2d", bot.feature(bot.ascii2d, bot.Ascii2dConfig.Enable))
+	bot.TelegramBot.Handle("/dice", bot.feature(bot.dice, bot.DiceConfig.Enable))
 }
 
 func (bot *Bot) Start() {
-	log.Info("幾重にも辛酸を舐め、七難八苦を超え、艱難辛苦の果て、満願成就に至る。")
 	bot.TelegramBot.Start()
+}
+
+func (bot *Bot) feature(f func(*tb.Message), enable bool) func(message *tb.Message) {
+	if enable {
+		return f
+	} else {
+		return bot.featureDisabled
+	}
+}
+
+func (bot *Bot) deleteMessageAsync(m *tb.Message) {
+	log.Debugf("将在%s后删除消息%d", bot.DeleteMessageInterval, m.ID)
+	time.Sleep(bot.DeleteMessageInterval)
+	err := bot.TelegramBot.Delete(m)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+	log.Debugf("消息%d已删除", m.ID)
 }
 
 func (bot *Bot) getPhotoFileURL(requestMessage *tb.Message) string {
@@ -106,24 +97,19 @@ func (bot *Bot) getPhotoFileURL(requestMessage *tb.Message) string {
 	if fileID == "" {
 		msg, err := bot.TelegramBot.Reply(requestMessage, "需要图片")
 		if err != nil {
-			log.Warn(err)
+			log.Error(err)
 		}
-		go func() {
-			time.Sleep(bot.DeleteMessageInterval)
-			err := bot.TelegramBot.Delete(msg)
-			if err != nil {
-				log.Warn(err)
-			}
-		}()
-
+		go bot.deleteMessageAsync(msg)
 		return ""
 	}
 
 	// Get photo file URL
 	url, err := bot.TelegramBot.FileURLByID(fileID)
 	if err != nil {
-		log.Warn(err)
+		log.Error(err)
+		return ""
 	}
+	log.Debugf("成功获取文件ID%s的URL：%s", fileID, url)
 	return url
 }
 
@@ -135,18 +121,13 @@ func (bot *Bot) saucenao(requestMessage *tb.Message) {
 
 	msg, err = bot.TelegramBot.Reply(requestMessage, "SauceNAO搜索中...")
 	if err != nil {
-		log.Warn(err)
+		log.Error(err)
 		return
 	}
 
 	// Search on SauceNAO
 	var result *saucenao.Result
-	result, err = bot.saucenaoService.Search(url)
-
-	if err != nil {
-		log.Error(err)
-		return
-	}
+	result = bot.saucenaoService.Search(url)
 
 	selector := &tb.ReplyMarkup{}
 	var buttons []tb.Btn
@@ -177,13 +158,7 @@ func (bot *Bot) saucenao(requestMessage *tb.Message) {
 	} else {
 		text = fmt.Sprintf("SauceNAO搜索失败（搜索结果相似度过低）")
 
-		go func() {
-			time.Sleep(bot.DeleteMessageInterval)
-			err := bot.TelegramBot.Delete(msg)
-			if err != nil {
-				log.Warn(err)
-			}
-		}()
+		go bot.deleteMessageAsync(msg)
 
 		if bot.Ascii2dConfig.Enable {
 			go bot.ascii2dWithFileURL(requestMessage, url)
@@ -192,7 +167,7 @@ func (bot *Bot) saucenao(requestMessage *tb.Message) {
 
 	msg, err = bot.TelegramBot.Edit(msg, text, selector)
 	if err != nil {
-		log.Warn(err)
+		log.Error(err)
 		return
 	}
 }
@@ -209,26 +184,16 @@ func (bot *Bot) ascii2dWithFileURL(requestMessage *tb.Message, fileURL string) {
 		return
 	}
 
-	var result *ascii2d.Result
-	result, err = bot.ascii2dService.Search(fileURL)
-	if err != nil {
-		log.Error(err)
-		return
-	}
+	result := bot.ascii2dService.Search(fileURL)
 
 	// ascii2d搜索无结果，通常这是你的访问IP在ascii2d的黑名单里所导致的
 	if result == nil {
 		msg, err = bot.TelegramBot.Edit(msg, "ascii2d搜索失败\n这很有可能是因为网络问题导致的，请联系管理员")
 		if err != nil {
-			log.Warn(err)
+			log.Error(err)
 			return
 		}
-		go func() {
-			time.Sleep(bot.DeleteMessageInterval)
-			err := bot.TelegramBot.Delete(msg)
-			if err != nil {
-			}
-		}()
+		go bot.deleteMessageAsync(msg)
 	} else {
 		photo := &tb.Photo{File: tb.FromURL(result.ThumbnailURL)}
 		selector := &tb.ReplyMarkup{}
@@ -240,11 +205,11 @@ func (bot *Bot) ascii2dWithFileURL(requestMessage *tb.Message, fileURL string) {
 		})
 		err = bot.TelegramBot.Delete(msg)
 		if err != nil {
-			log.Warn(err)
+			log.Error(err)
 		}
 		_, err = bot.TelegramBot.Reply(requestMessage, photo, selector)
 		if err != nil {
-			log.Warn(err)
+			log.Error(err)
 			return
 		}
 	}
@@ -307,17 +272,7 @@ func (bot *Bot) dice(m *tb.Message) {
 func (bot *Bot) featureDisabled(requestMessage *tb.Message) {
 	msg, err := bot.TelegramBot.Reply(requestMessage, "该功能未启动，请联系管理员")
 	if err != nil {
-		log.Warn(err)
+		log.Error(err)
 	}
-	go func() {
-		time.Sleep(bot.DeleteMessageInterval)
-		err := bot.TelegramBot.Delete(requestMessage)
-		if err != nil {
-			log.Warn(err)
-		}
-		err = bot.TelegramBot.Delete(msg)
-		if err != nil {
-			log.Warn()
-		}
-	}()
+	go bot.deleteMessageAsync(msg)
 }

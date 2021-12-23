@@ -14,6 +14,7 @@ import (
 )
 
 type Config struct {
+	DebugMode             bool             `yaml:"DebugMode"`
 	TelegramBotToken      string           `yaml:"TelegramBotToken"`
 	DeleteMessageInterval time.Duration    `yaml:"DeleteMessageInterval"`
 	SaucenaoConfig        *saucenao.Config `yaml:"SaucenaoConfig"`
@@ -50,6 +51,7 @@ func LoadConfig(configFilePath string) *Config {
 
 func NewConfig() *Config {
 	return &Config{
+		DebugMode:             false,
 		TelegramBotToken:      "",
 		DeleteMessageInterval: 5 * time.Second,
 		SaucenaoConfig: &saucenao.Config{

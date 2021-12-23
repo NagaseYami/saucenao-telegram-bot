@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/NagaseYami/saucenao-telegram-bot/bot"
+	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 )
 
@@ -10,6 +11,13 @@ func main() {
 	flag.Parse()
 
 	config := bot.LoadConfig(*configFileFlag)
+
+	if config.DebugMode {
+		log.SetLevel(log.DebugLevel)
+	}
+
 	bot := bot.NewBot(config)
+	bot.Init()
+	log.Info("幾重にも辛酸を舐め、七難八苦を超え、艱難辛苦の果て、満願成就に至る。")
 	bot.Start()
 }
