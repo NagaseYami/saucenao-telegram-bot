@@ -68,11 +68,13 @@ var saucenaoDatabaseIndexList = map[string]int64{
 }
 
 type Config struct {
-	Enable bool   `yaml:"Enable"`
-	ApiKey string `yaml:"ApiKey"`
+	Enable                    bool    `yaml:"Enable"`
+	ApiKey                    string  `yaml:"ApiKey"`
+	LowSimilarityWarningLevel float64 `yaml:"LowSimilarityWarningLevel"`
 }
 
 type Result struct {
+	Similarity   float64
 	ShortRemain  int64
 	LongRemain   int64
 	SearchResult map[string]string
@@ -178,6 +180,7 @@ func (service *Service) Search(fileURL string) *Result {
 	jsonHeader := gResult.Get("header")
 
 	return &Result{
+		Similarity:   minimumSimilarity,
 		ShortRemain:  jsonHeader.Get("short_remaining").Int(),
 		LongRemain:   jsonHeader.Get("long_remaining").Int(),
 		SearchResult: searchResult,

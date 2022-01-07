@@ -155,6 +155,10 @@ func (bot *Bot) saucenao(requestMessage *tb.Message) {
 		text = "搜索过于频繁，已达到24小时内搜索次数上限\nSauceNAO搜索失败"
 	} else if len(result.SearchResult) != 0 {
 		text = "SauceNAO搜索完毕"
+		if result.Similarity <= bot.SaucenaoConfig.LowSimilarityWarningLevel {
+			text += fmt.Sprintf("\n请注意，搜索结果的最低相似度为%g，低于阈值%g\n这说明搜索结果有可能不准确\n如果搜索结果不理想，请使用其他引擎搜索",
+				result.Similarity, bot.SaucenaoConfig.LowSimilarityWarningLevel)
+		}
 	} else {
 		text = fmt.Sprintf("SauceNAO搜索失败（搜索结果相似度过低）")
 
