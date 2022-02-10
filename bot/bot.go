@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/NagaseYami/saucenao-telegram-bot/service/ascii2d"
 	"github.com/NagaseYami/saucenao-telegram-bot/service/saucenao"
 	log "github.com/sirupsen/logrus"
 	tb "gopkg.in/tucnak/telebot.v2"
@@ -18,7 +17,6 @@ type Bot struct {
 	*Config
 	TelegramBot     *tb.Bot
 	saucenaoService *saucenao.Service
-	ascii2dService  *ascii2d.Service
 }
 
 func NewBot(config *Config) *Bot {
@@ -52,13 +50,8 @@ func (bot *Bot) Init() {
 		bot.saucenaoService = &saucenao.Service{Config: bot.SaucenaoConfig}
 	}
 
-	if bot.Ascii2dConfig.Enable {
-		bot.ascii2dService = &ascii2d.Service{Config: bot.Ascii2dConfig}
-	}
-
 	bot.TelegramBot.Handle(tb.OnPhoto, bot.feature(bot.saucenao, bot.SaucenaoConfig.Enable))
 	bot.TelegramBot.Handle("/sauce", bot.feature(bot.saucenao, bot.SaucenaoConfig.Enable))
-	bot.TelegramBot.Handle("/ascii2d", bot.feature(bot.ascii2d, bot.Ascii2dConfig.Enable))
 	bot.TelegramBot.Handle("/dice", bot.feature(bot.dice, bot.DiceConfig.Enable))
 }
 
@@ -161,61 +154,14 @@ func (bot *Bot) saucenao(requestMessage *tb.Message) {
 		}
 	} else {
 		text = fmt.Sprintf("SauceNAO搜索失败（搜索结果相似度过低）")
-
 		go bot.deleteMessageAsync(msg)
-
-		if bot.Ascii2dConfig.Enable {
-			go bot.ascii2dWithFileURL(requestMessage, url)
-		}
+		go bot.deleteMessageAsync(requestMessage)
 	}
 
 	msg, err = bot.TelegramBot.Edit(msg, text, selector)
 	if err != nil {
 		log.Error(err)
 		return
-	}
-}
-
-func (bot *Bot) ascii2d(requestMessage *tb.Message) {
-	url := bot.getPhotoFileURL(requestMessage)
-	bot.ascii2dWithFileURL(requestMessage, url)
-}
-
-func (bot *Bot) ascii2dWithFileURL(requestMessage *tb.Message, fileURL string) {
-	msg, err := bot.TelegramBot.Reply(requestMessage, "ascii2d搜索中...")
-	if err != nil {
-		log.Error(err)
-		return
-	}
-
-	result := bot.ascii2dService.Search(fileURL)
-
-	// ascii2d搜索无结果，通常这是你的访问IP在ascii2d的黑名单里所导致的
-	if result == nil {
-		msg, err = bot.TelegramBot.Edit(msg, "ascii2d搜索失败\n这很有可能是因为网络问题导致的，请联系管理员")
-		if err != nil {
-			log.Error(err)
-			return
-		}
-		go bot.deleteMessageAsync(msg)
-	} else {
-		photo := &tb.Photo{File: tb.FromURL(result.ThumbnailURL)}
-		selector := &tb.ReplyMarkup{}
-		selector.Inline(tb.Row{
-			tb.Btn{
-				Text: "ascii2d搜索结果",
-				URL:  result.ImageURL,
-			},
-		})
-		err = bot.TelegramBot.Delete(msg)
-		if err != nil {
-			log.Error(err)
-		}
-		_, err = bot.TelegramBot.Reply(requestMessage, photo, selector)
-		if err != nil {
-			log.Error(err)
-			return
-		}
 	}
 }
 

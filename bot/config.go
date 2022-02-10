@@ -5,7 +5,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/NagaseYami/saucenao-telegram-bot/service/ascii2d"
 	"github.com/NagaseYami/saucenao-telegram-bot/service/dice"
 	"github.com/NagaseYami/saucenao-telegram-bot/service/saucenao"
 	"gopkg.in/yaml.v2"
@@ -18,7 +17,6 @@ type Config struct {
 	TelegramBotToken      string           `yaml:"TelegramBotToken"`
 	DeleteMessageInterval time.Duration    `yaml:"DeleteMessageInterval"`
 	SaucenaoConfig        *saucenao.Config `yaml:"SaucenaoConfig"`
-	Ascii2dConfig         *ascii2d.Config  `yaml:"Ascii2dConfig"`
 	DiceConfig            *dice.Config     `yaml:"DiceConfig"`
 }
 
@@ -58,10 +56,6 @@ func NewConfig() *Config {
 			Enable:                    false,
 			ApiKey:                    "",
 			LowSimilarityWarningLevel: 70,
-		},
-		Ascii2dConfig: &ascii2d.Config{
-			Enable:         true,
-			TempFolderPath: "./temp",
 		},
 		DiceConfig: &dice.Config{Enable: true},
 	}
