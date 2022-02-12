@@ -67,17 +67,6 @@ func (bot *Bot) feature(f func(*tb.Message), enable bool) func(message *tb.Messa
 	}
 }
 
-func (bot *Bot) deleteMessageAsync(m *tb.Message) {
-	log.Debugf("将在%s后删除消息%d", bot.DeleteMessageInterval, m.ID)
-	time.Sleep(bot.DeleteMessageInterval)
-	err := bot.TelegramBot.Delete(m)
-	if err != nil {
-		log.Error(err)
-		return
-	}
-	log.Debugf("消息%d已删除", m.ID)
-}
-
 func (bot *Bot) getPhotoFileURL(requestMessage *tb.Message) string {
 	// Get photo file ID
 	var fileID string
@@ -88,11 +77,10 @@ func (bot *Bot) getPhotoFileURL(requestMessage *tb.Message) string {
 	}
 
 	if fileID == "" {
-		msg, err := bot.TelegramBot.Reply(requestMessage, "需要图片")
+		_, err := bot.TelegramBot.Reply(requestMessage, "需要图片")
 		if err != nil {
 			log.Error(err)
 		}
-		go bot.deleteMessageAsync(msg)
 		return ""
 	}
 
@@ -154,8 +142,6 @@ func (bot *Bot) saucenao(requestMessage *tb.Message) {
 		}
 	} else {
 		text = fmt.Sprintf("SauceNAO搜索失败（搜索结果相似度过低）")
-		go bot.deleteMessageAsync(msg)
-		go bot.deleteMessageAsync(requestMessage)
 	}
 
 	msg, err = bot.TelegramBot.Edit(msg, text, selector)
@@ -220,9 +206,8 @@ func (bot *Bot) dice(m *tb.Message) {
 }
 
 func (bot *Bot) featureDisabled(requestMessage *tb.Message) {
-	msg, err := bot.TelegramBot.Reply(requestMessage, "该功能未启动，请联系管理员")
+	_, err := bot.TelegramBot.Reply(requestMessage, "该功能未启动，请联系管理员")
 	if err != nil {
 		log.Error(err)
 	}
-	go bot.deleteMessageAsync(msg)
 }

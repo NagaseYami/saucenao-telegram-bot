@@ -54,12 +54,6 @@ DebugMode: false
 # https://core.telegram.org/bots#6-botfather
 TelegramBotToken: ""
 
-# BOT有时会删除一些没用的消息，比如「搜索失败」「功能未启用」等
-# 这里填写删除消息前的等待时间
-# 格式采用time.Duration
-# https://pkg.go.dev/time#ParseDuration
-DeleteMessageInterval: 5s
-
 # SauceNAO
 SaucenaoConfig:
   Enable: false
