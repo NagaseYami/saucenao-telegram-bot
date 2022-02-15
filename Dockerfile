@@ -1,11 +1,11 @@
-FROM golang:1.17.5-alpine as builder
+FROM golang:1.17.7-alpine as builder
 
 WORKDIR /go/src/app
 
 COPY . .
 RUN go build main.go
 
-FROM alpine
+FROM zenika/alpine-chrome
 
 COPY --from=builder /go/src/app/main /app/main
 
