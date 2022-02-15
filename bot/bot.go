@@ -187,7 +187,10 @@ func (bot *Bot) ascii2d(m *tb.Message) {
 	bovwSelector := &tb.ReplyMarkup{}
 	bovwSelector.Inline(bovwSelector.Row(bovwBtn))
 
-	bot.TelegramBot.Delete(msg)
+	err = bot.TelegramBot.Delete(msg)
+	if err != nil {
+		log.Error(err)
+	}
 
 	_, err = bot.TelegramBot.Reply(m, &tb.Photo{File: tb.FromURL(result.ColorThumbnail)}, colorSelector)
 	if err != nil {
