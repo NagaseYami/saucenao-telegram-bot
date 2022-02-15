@@ -1,4 +1,4 @@
-FROM golang:1.17.7-alpine as builder
+FROM golang:1.17.5-alpine as builder
 
 WORKDIR /go/src/app
 
@@ -7,7 +7,6 @@ RUN go build main.go
 
 FROM alpine
 
-RUN apk add chromium
 COPY --from=builder /go/src/app/main /app/main
 
 WORKDIR /app
