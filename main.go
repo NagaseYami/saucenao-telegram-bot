@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	configFileFlag := flag.String("config", "config.yaml", "DiceConfig file path.")
+	configFileFlag := flag.String("config", "config.yaml", "Config file path.")
 	flag.Parse()
 
 	config := bot.LoadConfig(*configFileFlag)
