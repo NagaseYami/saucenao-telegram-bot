@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/NagaseYami/saucenao-telegram-bot/service/saucenao"
+	"github.com/NagaseYami/saucenao-telegram-bot/service"
 	log "github.com/sirupsen/logrus"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
@@ -16,7 +16,7 @@ import (
 type Bot struct {
 	*Config
 	TelegramBot     *tb.Bot
-	saucenaoService *saucenao.Service
+	saucenaoService *service.SaucenaoService
 }
 
 func NewBot(config *Config) *Bot {
@@ -45,9 +45,9 @@ func (bot *Bot) Init() {
 		log.Fatalf("Telegram Bot 初始化时发生错误：%s", err)
 	}
 
-	// Handle Service
+	// Handle SaucenaoService
 	if bot.SaucenaoConfig.Enable {
-		bot.saucenaoService = &saucenao.Service{Config: bot.SaucenaoConfig}
+		bot.saucenaoService = &service.SaucenaoService{SaucenaoConfig: bot.SaucenaoConfig}
 	}
 
 	bot.TelegramBot.Handle(tb.OnPhoto, bot.feature(bot.saucenao, bot.SaucenaoConfig.Enable))
@@ -107,7 +107,7 @@ func (bot *Bot) saucenao(requestMessage *tb.Message) {
 	}
 
 	// Search on SauceNAO
-	var result *saucenao.Result
+	var result *service.SaucenaoResult
 	result = bot.saucenaoService.Search(url)
 
 	selector := &tb.ReplyMarkup{}

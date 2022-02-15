@@ -1,4 +1,4 @@
-package saucenao
+package service
 
 import (
 	"fmt"
@@ -67,24 +67,24 @@ var saucenaoDatabaseIndexList = map[string]int64{
 	"Furry Network":   42,
 }
 
-type Config struct {
+type SaucenaoConfig struct {
 	Enable                    bool    `yaml:"Enable"`
 	ApiKey                    string  `yaml:"ApiKey"`
 	LowSimilarityWarningLevel float64 `yaml:"LowSimilarityWarningLevel"`
 }
 
-type Result struct {
+type SaucenaoResult struct {
 	Similarity   float64
 	ShortRemain  int64
 	LongRemain   int64
 	SearchResult map[string]string
 }
 
-type Service struct {
-	*Config
+type SaucenaoService struct {
+	*SaucenaoConfig
 }
 
-func (service *Service) Search(fileURL string) *Result {
+func (service *SaucenaoService) Search(fileURL string) *SaucenaoResult {
 	// 访问API
 	apiURL := fmt.Sprintf(apiURL, service.ApiKey, url.PathEscape(fileURL))
 	log.Debugf("开始SauceNAO搜索：%s", apiURL)
@@ -179,7 +179,7 @@ func (service *Service) Search(fileURL string) *Result {
 	// 从Header中获取API剩余可用次数
 	jsonHeader := gResult.Get("header")
 
-	return &Result{
+	return &SaucenaoResult{
 		Similarity:   minimumSimilarity,
 		ShortRemain:  jsonHeader.Get("short_remaining").Int(),
 		LongRemain:   jsonHeader.Get("long_remaining").Int(),
@@ -187,7 +187,7 @@ func (service *Service) Search(fileURL string) *Result {
 	}
 }
 
-func (service *Service) getPixivArtwork(extURL string) string {
+func (service *SaucenaoService) getPixivArtwork(extURL string) string {
 	// 从P站多图Artwork的单图链接中提取Artwork链接
 	if strings.Contains(extURL, "https://i.pximg.net") {
 		fileName := path.Base(extURL)
@@ -204,7 +204,7 @@ func (service *Service) getPixivArtwork(extURL string) string {
 	return extURL
 }
 
-func (service *Service) getEHentaiGallery(engName string, jpName string) string {
+func (service *SaucenaoService) getEHentaiGallery(engName string, jpName string) string {
 	if engName == "" && jpName == "" {
 		return ""
 	}
@@ -239,7 +239,7 @@ func (service *Service) getEHentaiGallery(engName string, jpName string) string 
 	return result
 }
 
-func (service *Service) getNHentaiGallery(engName string, jpName string) string {
+func (service *SaucenaoService) getNHentaiGallery(engName string, jpName string) string {
 	if engName == "" && jpName == "" {
 		return ""
 	}
@@ -274,7 +274,7 @@ func (service *Service) getNHentaiGallery(engName string, jpName string) string 
 	return nhentaiURL + result
 }
 
-func (service *Service) getDatabaseFromURL(url string) string {
+func (service *SaucenaoService) getDatabaseFromURL(url string) string {
 	if strings.Contains(url, "www.pixiv.net") {
 		return "Pixiv"
 	} else if strings.Contains(url, "danbooru.donmai.us") {
