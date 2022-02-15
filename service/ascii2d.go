@@ -52,13 +52,16 @@ func (service *Ascii2dService) Search(fileURL string) *Ascii2dResult {
 	page = page.MustElement("#file_upload > div > div.col-sm-1.col-xs-12 > button").MustClick().Page()
 	page.MustWaitLoad()
 
-	colorThumb := path.Join(ascii2dURL, *page.MustElement(firstResultThumbnailSelector).MustAttribute("src"))
+	colorThumb := ascii2dURL + *page.MustElement(firstResultThumbnailSelector).MustAttribute("src")
 	colorURL := *page.MustElement(firstResultURLSelector).MustAttribute("href")
 
 	page = page.MustElement("body > div > div > div.col-xs-12.col-lg-8.col-xl-8 > div:nth-child(3) > div.detail-link.pull-xs-right.hidden-sm-down.gray-link > span:nth-child(2) > a").MustClick().Page()
 
-	bovwThumbnail := path.Join(ascii2dURL, *page.MustElement(firstResultThumbnailSelector).MustAttribute("src"))
+	bovwThumbnail := ascii2dURL + *page.MustElement(firstResultThumbnailSelector).MustAttribute("src")
 	bovwURL := *page.MustElement(firstResultURLSelector).MustAttribute("href")
+
+	log.Debugf("ascii2d搜索结果：\n色合：%s\n特征：%s\n", colorURL, bovwURL)
+
 	return &Ascii2dResult{
 		ColorThumbnail: colorThumb,
 		ColorURL:       colorURL,

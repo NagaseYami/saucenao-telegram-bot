@@ -1,8 +1,6 @@
 package tool
 
 import (
-	"time"
-
 	"github.com/go-rod/rod"
 )
 
@@ -13,7 +11,7 @@ type MyBrowser struct {
 }
 
 func (b *MyBrowser) Init() {
-	b.RodBrowser = rod.New().Timeout(time.Second * 30).MustConnect()
+	b.RodBrowser = rod.New().MustConnect()
 }
 
 func (b *MyBrowser) UnInit() {
