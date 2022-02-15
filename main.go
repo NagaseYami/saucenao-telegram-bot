@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/NagaseYami/saucenao-telegram-bot/bot"
-	"github.com/NagaseYami/saucenao-telegram-bot/tool"
+	"github.com/NagaseYami/telegram-bot/bot"
+	"github.com/NagaseYami/telegram-bot/tool"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 )

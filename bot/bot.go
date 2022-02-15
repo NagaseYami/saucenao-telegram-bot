@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/NagaseYami/saucenao-telegram-bot/service"
+	"github.com/NagaseYami/telegram-bot/service"
 	log "github.com/sirupsen/logrus"
 	tb "gopkg.in/tucnak/telebot.v2"
 )

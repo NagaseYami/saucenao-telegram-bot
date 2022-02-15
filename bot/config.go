@@ -4,7 +4,7 @@ import (
 	"errors"
 	"os"
 
-	"github.com/NagaseYami/saucenao-telegram-bot/service"
+	"github.com/NagaseYami/telegram-bot/service"
 	"gopkg.in/yaml.v2"
 
 	log "github.com/sirupsen/logrus"

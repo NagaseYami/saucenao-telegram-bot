@@ -3,7 +3,7 @@ package service
 import (
 	"testing"
 
-	"github.com/NagaseYami/saucenao-telegram-bot/tool"
+	"github.com/NagaseYami/telegram-bot/tool"
 )
 
 func TestAscii2dSearch(T *testing.T) {

@@ -3,7 +3,7 @@ package service
 import (
 	"path"
 
-	"github.com/NagaseYami/saucenao-telegram-bot/tool"
+	"github.com/NagaseYami/telegram-bot/tool"
 	"github.com/go-rod/rod"
 	"github.com/go-rod/stealth"
 	"github.com/imroc/req/v3"
