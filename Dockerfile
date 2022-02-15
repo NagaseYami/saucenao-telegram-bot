@@ -16,4 +16,4 @@ COPY --from=builder /go/src/app/main /app/main
 
 WORKDIR /app
 
-CMD ["./main"]
+ENTRYPOINT ["./main"]
