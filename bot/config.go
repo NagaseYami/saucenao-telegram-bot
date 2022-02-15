@@ -16,6 +16,7 @@ type Config struct {
 	TelegramBotToken      string                  `yaml:"TelegramBotToken"`
 	DeleteMessageInterval time.Duration           `yaml:"DeleteMessageInterval"`
 	SaucenaoConfig        *service.SaucenaoConfig `yaml:"SaucenaoConfig"`
+	Ascii2dConfig         *service.Ascii2dConfig  `yaml:"Ascii2dConfig"`
 	DiceConfig            *service.DiceConfig     `yaml:"DiceConfig"`
 }
 
@@ -55,6 +56,10 @@ func NewConfig() *Config {
 			Enable:                    false,
 			ApiKey:                    "",
 			LowSimilarityWarningLevel: 70,
+		},
+		Ascii2dConfig: &service.Ascii2dConfig{
+			Enable:        false,
+			TempDirectory: "./temp",
 		},
 		DiceConfig: &service.DiceConfig{Enable: true},
 	}

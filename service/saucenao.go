@@ -148,7 +148,7 @@ func (service *SaucenaoService) Search(fileURL string) *SaucenaoResult {
 				// 多个ext_urls时只取第一个
 				artworkURL = extURLs[0]
 			} else {
-				log.Warn("遇到了未知的没有ext_urls的Database：%d\n被搜索的图片URL：%s", dbIndex, fileURL)
+				log.Warnf("遇到了未知的没有ext_urls的Database：%d\n被搜索的图片URL：%s", dbIndex, fileURL)
 				continue
 			}
 		}

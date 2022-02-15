@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/NagaseYami/saucenao-telegram-bot/bot"
+	"github.com/NagaseYami/saucenao-telegram-bot/tool"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 )
@@ -15,6 +16,9 @@ func main() {
 	if config.DebugMode {
 		log.SetLevel(log.DebugLevel)
 	}
+
+	tool.Browser.Init()
+	defer tool.Browser.UnInit()
 
 	bot := bot.NewBot(config)
 	bot.Init()
