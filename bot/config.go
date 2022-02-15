@@ -3,7 +3,6 @@ package bot
 import (
 	"errors"
 	"os"
-	"time"
 
 	"github.com/NagaseYami/saucenao-telegram-bot/service"
 	"gopkg.in/yaml.v2"
@@ -12,12 +11,11 @@ import (
 )
 
 type Config struct {
-	DebugMode             bool                    `yaml:"DebugMode"`
-	TelegramBotToken      string                  `yaml:"TelegramBotToken"`
-	DeleteMessageInterval time.Duration           `yaml:"DeleteMessageInterval"`
-	SaucenaoConfig        *service.SaucenaoConfig `yaml:"SaucenaoConfig"`
-	Ascii2dConfig         *service.Ascii2dConfig  `yaml:"Ascii2dConfig"`
-	DiceConfig            *service.DiceConfig     `yaml:"DiceConfig"`
+	DebugMode        bool                    `yaml:"DebugMode"`
+	TelegramBotToken string                  `yaml:"TelegramBotToken"`
+	SaucenaoConfig   *service.SaucenaoConfig `yaml:"SaucenaoConfig"`
+	Ascii2dConfig    *service.Ascii2dConfig  `yaml:"Ascii2dConfig"`
+	DiceConfig       *service.DiceConfig     `yaml:"DiceConfig"`
 }
 
 func LoadConfig(configFilePath string) *Config {
@@ -49,9 +47,8 @@ func LoadConfig(configFilePath string) *Config {
 
 func NewConfig() *Config {
 	return &Config{
-		DebugMode:             false,
-		TelegramBotToken:      "",
-		DeleteMessageInterval: 5 * time.Second,
+		DebugMode:        false,
+		TelegramBotToken: "",
 		SaucenaoConfig: &service.SaucenaoConfig{
 			Enable:                    false,
 			ApiKey:                    "",
