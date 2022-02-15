@@ -12,6 +12,12 @@ type MyBrowser struct {
 
 func (b *MyBrowser) Init() {
 	b.RodBrowser = rod.New().MustConnect()
+	pages := b.RodBrowser.MustPages()
+	if !pages.Empty() {
+		for _, page := range pages {
+			page.MustClose()
+		}
+	}
 }
 
 func (b *MyBrowser) UnInit() {
