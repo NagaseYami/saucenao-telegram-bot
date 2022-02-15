@@ -138,9 +138,11 @@ func (bot *Bot) saucenao(m *tb.Message) {
 	var text string
 
 	if result.ShortRemain <= 0 {
-		text = "搜索过于频繁，已达到30秒内搜索次数上限\nSauceNAO搜索失败"
+		text = "搜索过于频繁，已达到30秒内搜索次数上限\nSauceNAO搜索失败\n将启动ascii2d搜索"
+		go bot.ascii2d(m)
 	} else if result.LongRemain <= 0 {
-		text = "搜索过于频繁，已达到24小时内搜索次数上限\nSauceNAO搜索失败"
+		text = "搜索过于频繁，已达到24小时内搜索次数上限\nSauceNAO搜索失败\n将启动ascii2d搜索"
+		go bot.ascii2d(m)
 	} else if len(result.SearchResult) != 0 {
 		text = "SauceNAO搜索完毕"
 		if result.Similarity <= bot.SaucenaoConfig.LowSimilarityWarningLevel {
@@ -148,7 +150,8 @@ func (bot *Bot) saucenao(m *tb.Message) {
 				result.Similarity, bot.SaucenaoConfig.LowSimilarityWarningLevel)
 		}
 	} else {
-		text = fmt.Sprintf("SauceNAO搜索失败（搜索结果相似度过低）")
+		text = fmt.Sprintf("SauceNAO搜索失败（搜索结果相似度过低）\n将启动ascii2d搜索")
+		go bot.ascii2d(m)
 	}
 
 	msg, err = bot.TelegramBot.Edit(msg, text, selector)
