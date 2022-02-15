@@ -17,6 +17,7 @@ type Bot struct {
 	*Config
 	TelegramBot     *tb.Bot
 	saucenaoService *service.SaucenaoService
+	ascii2dService  *service.Ascii2dService
 }
 
 func NewBot(config *Config) *Bot {
@@ -50,8 +51,14 @@ func (bot *Bot) Init() {
 		bot.saucenaoService = &service.SaucenaoService{SaucenaoConfig: bot.SaucenaoConfig}
 	}
 
+	if bot.Ascii2dConfig.Enable {
+		bot.ascii2dService = &service.Ascii2dService{Ascii2dConfig: bot.Ascii2dConfig}
+		bot.ascii2dService.Init()
+	}
+
 	bot.TelegramBot.Handle(tb.OnPhoto, bot.feature(bot.saucenao, bot.SaucenaoConfig.Enable))
 	bot.TelegramBot.Handle("/sauce", bot.feature(bot.saucenao, bot.SaucenaoConfig.Enable))
+	bot.TelegramBot.Handle("/ascii2d", bot.feature(bot.ascii2d, bot.Ascii2dConfig.Enable))
 	bot.TelegramBot.Handle("/dice", bot.feature(bot.dice, bot.DiceConfig.Enable))
 }
 
@@ -94,13 +101,13 @@ func (bot *Bot) getPhotoFileURL(requestMessage *tb.Message) string {
 	return url
 }
 
-func (bot *Bot) saucenao(requestMessage *tb.Message) {
-	var msg *tb.Message
-	var err error
+func (bot *Bot) saucenao(m *tb.Message) {
+	url := bot.getPhotoFileURL(m)
+	if url == "" {
+		return
+	}
 
-	url := bot.getPhotoFileURL(requestMessage)
-
-	msg, err = bot.TelegramBot.Reply(requestMessage, "SauceNAO搜索中...")
+	msg, err := bot.TelegramBot.Reply(m, "SauceNAO搜索中...")
 	if err != nil {
 		log.Error(err)
 		return
@@ -148,6 +155,45 @@ func (bot *Bot) saucenao(requestMessage *tb.Message) {
 	if err != nil {
 		log.Error(err)
 		return
+	}
+}
+
+func (bot *Bot) ascii2d(m *tb.Message) {
+	url := bot.getPhotoFileURL(m)
+	if url == "" {
+		return
+	}
+
+	msg, err := bot.TelegramBot.Reply(m, "ascii2d搜索中...")
+
+	result := bot.ascii2dService.Search(url)
+
+	colorBtn := tb.Btn{
+		Text: "ascii2d色合搜索结果",
+		URL:  result.ColorURL,
+	}
+
+	bovwBtn := tb.Btn{
+		Text: "ascii2d特征搜索结果",
+		URL:  result.BovwURL,
+	}
+
+	colorSelector := &tb.ReplyMarkup{}
+	colorSelector.Inline(colorSelector.Row(colorBtn))
+
+	bovwSelector := &tb.ReplyMarkup{}
+	bovwSelector.Inline(bovwSelector.Row(bovwBtn))
+
+	bot.TelegramBot.Delete(msg)
+
+	_, err = bot.TelegramBot.Reply(m, &tb.Photo{File: tb.FromURL(result.ColorThumbnail)}, colorSelector)
+	if err != nil {
+		log.Error(err)
+	}
+
+	_, err = bot.TelegramBot.Reply(m, &tb.Photo{File: tb.FromURL(result.BovwThumbnail)}, bovwSelector)
+	if err != nil {
+		log.Error(err)
 	}
 }
 
