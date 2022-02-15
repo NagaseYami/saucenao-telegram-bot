@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	configFileFlag := flag.String("config", "config.yaml", "Config file path.")
+	configFileFlag := flag.StringP("config", "c", "config.yaml", "Config file path.")
 	flag.Parse()
 
 	config := bot.LoadConfig(*configFileFlag)
