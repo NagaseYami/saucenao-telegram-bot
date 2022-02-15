@@ -66,7 +66,7 @@ func (service *Ascii2dService) Search(fileURL string) *Ascii2dResult {
 		colorURL = page.MustElement(firstResultURLSelector).MustAttribute("href")
 	} else {
 		colorURL = &page.MustInfo().URL
-		log.Infoln("色合搜索结果没有URL")
+		log.Debugln("色合搜索结果没有URL")
 	}
 
 	page = page.MustElement("body > div > div > div.col-xs-12.col-lg-8.col-xl-8 > div:nth-child(3) > div.detail-link.pull-xs-right.hidden-sm-down.gray-link > span:nth-child(2) > a").MustClick().Page().MustWaitIdle()
@@ -81,7 +81,7 @@ func (service *Ascii2dService) Search(fileURL string) *Ascii2dResult {
 		bovwURL = page.MustElement(firstResultURLSelector).MustAttribute("href")
 	} else {
 		bovwURL = &page.MustInfo().URL
-		log.Infoln("特征搜索结果没有URL")
+		log.Debugln("特征搜索结果没有URL")
 	}
 
 	log.Debugf("ascii2d搜索结果：\n色合：%s\n特征：%s\n", *colorURL, *bovwURL)
