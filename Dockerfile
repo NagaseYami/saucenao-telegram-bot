@@ -5,7 +5,10 @@ WORKDIR /go/src/app
 COPY . .
 RUN go build main.go
 
-FROM zenika/alpine-chrome
+FROM debian:bullseye-slim
+
+RUN apt-get update \
+    && apt-get install -y chromium-browser
 
 COPY --from=builder /go/src/app/main /app/main
 
