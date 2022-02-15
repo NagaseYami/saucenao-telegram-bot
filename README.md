@@ -8,6 +8,9 @@
   - SauceNAO
     - Reply一张图片并使用`/sauce`命令
     - 或者私聊直接发图给BOT
+  - ascii2d
+    - Reply一张图片并使用`/ascii2d`命令
+    - SauceNAO搜索失败时会自动启动
 - 骰子
   - `/dice`可以投掷1次D6
   - `/dice 7d20`可以投掷7次D20
@@ -59,6 +62,12 @@ SaucenaoConfig:
   Enable: false
   # ApiKey可以去SauceNAO注册账号免费申请
   ApiKey: ""
+
+# ascii2d
+Ascii2dConfig:
+  Enable: false
+  # 被搜索的图片的临时存放位置
+  TempDirectory: "./temp"
 
 # 骰子
 DiceConfig:
