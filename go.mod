@@ -1,4 +1,4 @@
-module github.com/NagaseYami/telegram-bot
+module github.com/NagaseYami/saucenao-telegram-bot
 
 go 1.16
 
