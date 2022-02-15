@@ -7,6 +7,8 @@ RUN go build main.go
 
 FROM debian:bullseye-slim
 
+RUN echo 'deb http://ftp.jp.debian.org/debian stretch main' > /etc/apt/sources.list
+
 RUN apt-get update \
     && apt-get install -y chromium-browser
 
