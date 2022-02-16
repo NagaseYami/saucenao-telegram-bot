@@ -16,6 +16,8 @@
   - `/dice 7d20`可以投掷7次D20
   - 以此类推最多支持同时投掷100个D10000
   - ※只投掷一次时投掷次数可不写
+- QR码扫描
+  - Reply一张图片并使用`/decodeQR`命令
 
 ## Docker
 
@@ -72,6 +74,11 @@ Ascii2dConfig:
 # 骰子
 DiceConfig:
   Enable: false
+
+# QR码扫描
+QRConfig:
+  Enable: false
+
 ```
 
 编辑完成之后再次启动即可，如果你想指定配置文件位置，你可以在启动时添加`--config /path/to/config.yaml`指定配置文件位置
