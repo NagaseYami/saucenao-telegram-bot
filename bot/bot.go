@@ -64,7 +64,7 @@ func (bot *Bot) Init() {
 	bot.TelegramBot.Handle("/sauce", bot.feature(bot.saucenao, bot.SaucenaoConfig.Enable))
 	bot.TelegramBot.Handle("/ascii2d", bot.feature(bot.ascii2d, bot.Ascii2dConfig.Enable))
 	bot.TelegramBot.Handle("/dice", bot.feature(bot.dice, bot.DiceConfig.Enable))
-	bot.TelegramBot.Handle("/decodeQR", bot.feature(bot.decodeQRCode, bot.QRConfig.Enable))
+	bot.TelegramBot.Handle("/qrdecode", bot.feature(bot.decodeQRCode, bot.QRConfig.Enable))
 }
 
 func (bot *Bot) Start() {
