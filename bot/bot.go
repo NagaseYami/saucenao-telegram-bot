@@ -74,17 +74,17 @@ func (bot *Bot) feature(f func(*tb.Message), enable bool) func(message *tb.Messa
 	}
 }
 
-func (bot *Bot) getPhotoFileURL(requestMessage *tb.Message) string {
+func (bot *Bot) getPhotoFileURL(m *tb.Message) string {
 	// Get photo file ID
 	var fileID string
-	if requestMessage.Photo != nil {
-		fileID = requestMessage.Photo.FileID
-	} else if requestMessage.IsReply() && requestMessage.ReplyTo.Photo != nil {
-		fileID = requestMessage.ReplyTo.Photo.FileID
+	if m.Photo != nil {
+		fileID = m.Photo.FileID
+	} else if m.IsReply() && m.ReplyTo.Photo != nil {
+		fileID = m.ReplyTo.Photo.FileID
 	}
 
 	if fileID == "" {
-		_, err := bot.TelegramBot.Reply(requestMessage, "需要图片")
+		_, err := bot.TelegramBot.Reply(m, "需要图片")
 		if err != nil {
 			log.Error(err)
 		}
@@ -257,8 +257,8 @@ func (bot *Bot) dice(m *tb.Message) {
 	}
 }
 
-func (bot *Bot) featureDisabled(requestMessage *tb.Message) {
-	_, err := bot.TelegramBot.Reply(requestMessage, "该功能未启动，请联系管理员")
+func (bot *Bot) featureDisabled(m *tb.Message) {
+	_, err := bot.TelegramBot.Reply(m, "该功能未启动，请联系管理员")
 	if err != nil {
 		log.Error(err)
 	}
