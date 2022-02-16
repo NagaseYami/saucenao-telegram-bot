@@ -17,16 +17,14 @@ func (b *MyBrowser) Init() {
 	if !has {
 		log.Fatal("未能找到支持的浏览器，请先安装go-rod支持的浏览器")
 	}
-	url := launcher.New().Bin(path).
-		Headless(true).
-		NoSandbox(true).
-		Set("–disable-sync").
-		Set("–no-first-run").
-		Set("--no-startup-window").
-		Set("--disable-extensions").
-		MustLaunch()
-	log.Info("浏览器启动成功")
-	b.RodBrowser = rod.New().ControlURL(url).MustConnect()
+	log.Debugf("已找到本地浏览器，路径：%s", path)
+	url := launcher.New().Bin(path).MustLaunch()
+	log.Debugf("浏览器启动成功，Devtools监听地址：%s", url)
+	b.RodBrowser = rod.New().ControlURL(url)
+	err := b.RodBrowser.Connect()
+	if err != nil {
+		log.Error(err)
+	}
 	pages := b.RodBrowser.MustPages()
 	if !pages.Empty() {
 		for _, page := range pages {

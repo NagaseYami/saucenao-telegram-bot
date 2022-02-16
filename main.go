@@ -12,15 +12,15 @@ func main() {
 	flag.Parse()
 
 	config := bot.LoadConfig(*configFileFlag)
-	log.Info("读取配置文件成功")
+	log.Debug("读取配置文件成功")
 
 	if config.DebugMode {
 		log.SetLevel(log.DebugLevel)
-		log.Info("已开启Debug模式")
+		log.Debug("已开启Debug模式")
 	}
 
 	tool.Browser.Init()
-	log.Info("初始化Headless Browser成功")
+	log.Debug("初始化Headless Browser成功")
 	defer tool.Browser.UnInit()
 
 	bot := bot.NewBot(config)
