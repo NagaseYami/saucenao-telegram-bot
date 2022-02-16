@@ -22,6 +22,7 @@ func (b *MyBrowser) Init() {
 	log.Debugf("浏览器启动成功，Devtools监听地址：%s", url)
 	b.RodBrowser = rod.New().ControlURL(url)
 	err := b.RodBrowser.Connect()
+	log.Debug("成功连接到Headless Browser")
 	if err != nil {
 		log.Error(err)
 	}
