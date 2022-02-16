@@ -22,16 +22,10 @@ func (b *MyBrowser) Init() {
 	log.Debugf("浏览器启动成功，Devtools监听地址：%s", url)
 	b.RodBrowser = rod.New().ControlURL(url)
 	err := b.RodBrowser.Connect()
-	log.Debug("成功连接到Headless Browser")
 	if err != nil {
-		log.Error(err)
+		log.Fatalf("连接到Headless Browser时发生了错误：%s", err)
 	}
-	pages := b.RodBrowser.MustPages()
-	if !pages.Empty() {
-		for _, page := range pages {
-			page.MustClose()
-		}
-	}
+	log.Debug("成功连接到Headless Browser")
 }
 
 func (b *MyBrowser) UnInit() {
