@@ -17,15 +17,15 @@ func (b *MyBrowser) Init() {
 	if !has {
 		log.Fatal("未能找到支持的浏览器，请先安装go-rod支持的浏览器")
 	}
-	log.Debugf("已找到本地浏览器，路径：%s", path)
+	log.Debugf("已找到浏览器，路径：%s", path)
 	url := launcher.New().Bin(path).MustLaunch()
 	log.Debugf("浏览器启动成功，Devtools监听地址：%s", url)
 	b.RodBrowser = rod.New().ControlURL(url)
 	err := b.RodBrowser.Connect()
 	if err != nil {
-		log.Fatalf("连接到Headless Browser时发生了错误：%s", err)
+		log.Fatalf("尝试连接到浏览器时发生了错误：%s", err)
 	}
-	log.Debug("成功连接到Headless Browser")
+	log.Debug("成功连接到浏览器")
 }
 
 func (b *MyBrowser) UnInit() {

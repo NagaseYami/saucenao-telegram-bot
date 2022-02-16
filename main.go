@@ -20,7 +20,7 @@ func main() {
 	}
 
 	tool.Browser.Init()
-	log.Debug("初始化Headless Browser成功")
+	log.Debug("浏览器初始化成功")
 	defer tool.Browser.UnInit()
 
 	bot := bot.NewBot(config)
