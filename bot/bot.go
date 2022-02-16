@@ -2,6 +2,7 @@ package bot
 
 import (
 	"fmt"
+	"image"
 	"math"
 	"math/rand"
 	"strconv"
@@ -9,6 +10,9 @@ import (
 	"time"
 
 	"github.com/NagaseYami/telegram-bot/service"
+	"github.com/imroc/req"
+	"github.com/makiuchi-d/gozxing"
+	"github.com/makiuchi-d/gozxing/qrcode"
 	log "github.com/sirupsen/logrus"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
@@ -60,6 +64,7 @@ func (bot *Bot) Init() {
 	bot.TelegramBot.Handle("/sauce", bot.feature(bot.saucenao, bot.SaucenaoConfig.Enable))
 	bot.TelegramBot.Handle("/ascii2d", bot.feature(bot.ascii2d, bot.Ascii2dConfig.Enable))
 	bot.TelegramBot.Handle("/dice", bot.feature(bot.dice, bot.DiceConfig.Enable))
+	bot.TelegramBot.Handle("/decodeQR", bot.feature(bot.decodeQRCode, bot.QRConfig.Enable))
 }
 
 func (bot *Bot) Start() {
@@ -252,6 +257,49 @@ func (bot *Bot) dice(m *tb.Message) {
 	}
 
 	_, err = bot.TelegramBot.Reply(m, "格式不正确，正确用法例：「/dice 1d6」")
+	if err != nil {
+		log.Error(err)
+	}
+}
+
+func (bot *Bot) decodeQRCode(m *tb.Message) {
+	url := bot.getPhotoFileURL(m)
+	if url == "" {
+		return
+	}
+
+	msg, err := bot.TelegramBot.Reply(m, "正在分析图片...")
+	if err != nil {
+		log.Error(err)
+	}
+
+	resp, err := req.Get(url)
+	if err != nil {
+		log.Errorf("获取二维码图片时发生错误：%s\n", err.Error())
+		return
+	}
+	defer resp.Response().Body.Close()
+
+	img, _, err := image.Decode(resp.Response().Body)
+	if err != nil {
+		log.Errorf("Decode二维码图片时发生错误：%s\n", err.Error())
+		return
+	}
+
+	bmp, err := gozxing.NewBinaryBitmapFromImage(img)
+	if err != nil {
+		log.Errorf("二维码图片转换为Bitmap时发生错误：%s\n", err.Error())
+		return
+	}
+	qrReader := qrcode.NewQRCodeReader()
+	result, _ := qrReader.Decode(bmp, nil)
+
+	if result == nil || result.String() == "" {
+		bot.TelegramBot.Edit(msg, "图片中未发现二维码，分析失败")
+		return
+	}
+
+	_, err = bot.TelegramBot.Edit(msg, fmt.Sprintf("二维码分析结果：\n%s", result.String()))
 	if err != nil {
 		log.Error(err)
 	}

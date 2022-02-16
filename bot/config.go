@@ -16,6 +16,7 @@ type Config struct {
 	SaucenaoConfig   *service.SaucenaoConfig `yaml:"SaucenaoConfig"`
 	Ascii2dConfig    *service.Ascii2dConfig  `yaml:"Ascii2dConfig"`
 	DiceConfig       *service.DiceConfig     `yaml:"DiceConfig"`
+	QRConfig         *service.QRConfig       `yaml:"QRConfig"`
 }
 
 func LoadConfig(configFilePath string) *Config {
@@ -59,6 +60,7 @@ func NewConfig() *Config {
 			TempDirectory: "./temp",
 		},
 		DiceConfig: &service.DiceConfig{Enable: true},
+		QRConfig:   &service.QRConfig{Enable: true},
 	}
 }
 
