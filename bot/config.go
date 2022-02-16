@@ -55,7 +55,7 @@ func NewConfig() *Config {
 			LowSimilarityWarningLevel: 70,
 		},
 		Ascii2dConfig: &service.Ascii2dConfig{
-			Enable:        false,
+			Enable:        true,
 			TempDirectory: "./temp",
 		},
 		DiceConfig: &service.DiceConfig{Enable: true},
