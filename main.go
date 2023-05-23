@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/NagaseYami/telegram-bot/bot"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
+	"telegram-bot/bot"
 )
 
 func main() {

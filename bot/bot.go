@@ -11,8 +11,10 @@ import (
 	"github.com/imroc/req"
 	"github.com/makiuchi-d/gozxing"
 	"github.com/makiuchi-d/gozxing/qrcode"
+	"github.com/sashabaranov/go-openai"
 	log "github.com/sirupsen/logrus"
 	tele "gopkg.in/telebot.v3"
+	"telegram-bot/service"
 )
 
 type Bot struct {
@@ -46,6 +48,12 @@ func (bot *Bot) Init() {
 		log.Fatalf("Telegram Bot 初始化时发生错误：%s", err)
 	}
 
+	if bot.OpenAIConfig.Enable {
+		service.OpenAIInstance.Init(bot.OpenAIConfig)
+	}
+
+	bot.TelegramBot.Handle(tele.OnText, bot.feature(bot.startChatGPTByReply, bot.OpenAIConfig.Enable))
+	bot.TelegramBot.Handle("/chatgpt", bot.feature(bot.createTalk, bot.OpenAIConfig.Enable))
 	bot.TelegramBot.Handle("/dice", bot.feature(bot.dice, bot.DiceConfig.Enable))
 	bot.TelegramBot.Handle("/qrdecode", bot.feature(bot.decodeQRCode, bot.QRConfig.Enable))
 }
@@ -89,6 +97,90 @@ func (bot *Bot) getPhotoFileURL(m *tele.Message) string {
 	return file.FileURL
 }
 
+func (bot *Bot) startChatGPTByReply(c tele.Context) error {
+	if c.Message().IsReply() {
+		talk := service.OpenAIInstance.GetTalkByMessageID(c.Message().ReplyTo.ID)
+		if talk != nil {
+			text := c.Message().Text
+			if strings.ReplaceAll(strings.ReplaceAll(text, " ", ""), "　", "") == "" {
+				text = "你好"
+			}
+			talk.Messages = append(talk.Messages, struct {
+				IsUser    bool
+				MessageID int
+				Message   string
+			}{
+				IsUser:    true,
+				MessageID: c.Message().ID,
+				Message:   text,
+			})
+			talk.LastUsedAt = time.Now().Unix()
+			return bot.chat(c, talk)
+		}
+		bot.TelegramBot.Reply(c.Message(), "抱歉，出于技术原因，我不记得这段对话了，请开始一段新的对话")
+	}
+	return nil
+}
+
+func (bot *Bot) createTalk(c tele.Context) error {
+	text := strings.Replace(c.Message().Text, "/chatgpt", "", 1)
+
+	if strings.ReplaceAll(strings.ReplaceAll(text, " ", ""), "　", "") == "" {
+		text = "你好"
+	}
+
+	talk := &service.OpenAIChatGPTTalk{
+		Messages: []struct {
+			IsUser    bool
+			MessageID int
+			Message   string
+		}{
+			{IsUser: true, MessageID: c.Message().ID, Message: text},
+		},
+		LastUsedAt: time.Now().Unix(),
+	}
+
+	service.OpenAIInstance.AddTalk(talk)
+
+	return bot.chat(c, talk)
+}
+
+func (bot *Bot) chat(c tele.Context, talk *service.OpenAIChatGPTTalk) error {
+	var chatCompletionMessages []openai.ChatCompletionMessage
+	for _, msg := range talk.Messages {
+		if msg.IsUser {
+			chatCompletionMessages = append(chatCompletionMessages, openai.ChatCompletionMessage{
+				Role:    openai.ChatMessageRoleUser,
+				Content: msg.Message,
+			})
+		} else {
+			chatCompletionMessages = append(chatCompletionMessages, openai.ChatCompletionMessage{
+				Role:    openai.ChatMessageRoleAssistant,
+				Content: msg.Message,
+			})
+		}
+	}
+	resp, err := service.OpenAIInstance.ChatCompletion(chatCompletionMessages)
+	if err != nil {
+		return err
+	}
+	r, err := bot.TelegramBot.Reply(c.Message(), resp)
+	if err != nil {
+		return err
+	}
+	talk.Messages = append(talk.Messages, struct {
+		IsUser    bool
+		MessageID int
+		Message   string
+	}{
+		IsUser:    false,
+		MessageID: r.ID,
+		Message:   resp,
+	})
+
+	return err
+}
+
 func (bot *Bot) dice(c tele.Context) error {
 	var err error
 	cmd := strings.Split(strings.ToLower(c.Message().Payload), " ")[0]
@@ -105,18 +197,13 @@ func (bot *Bot) dice(c tele.Context) error {
 		num, err := strconv.ParseInt(s[0], 10, 64)
 		if num > 100 {
 			_, err = bot.TelegramBot.Reply(c.Message(), "为了保证机器人不会炸掉，请控制投掷次数≤100次")
-			if err != nil {
-				return err
-			}
-
+			return err
 		}
 		if err == nil {
 			face, err := strconv.ParseInt(s[1], 10, 64)
 			if face > 10000 {
 				_, err = bot.TelegramBot.Reply(c.Message(), "为了保证机器人不会炸掉，请控制骰子面数≤10000")
-				if err != nil {
-					return err
-				}
+				return err
 
 			}
 			if err == nil {
@@ -130,9 +217,7 @@ func (bot *Bot) dice(c tele.Context) error {
 				}
 				_, err = bot.TelegramBot.Reply(c.Message(), fmt.Sprintf("投掷D%d骰子%d次的结果为%d\n最终合计值为%d", face, num, results,
 					sum))
-				if err != nil {
-					return err
-				}
+				return err
 
 			}
 		}

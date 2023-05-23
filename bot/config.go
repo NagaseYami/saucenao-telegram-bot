@@ -4,8 +4,8 @@ import (
 	"errors"
 	"os"
 
-	"github.com/NagaseYami/telegram-bot/service"
 	"gopkg.in/yaml.v2"
+	"telegram-bot/service"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -13,6 +13,7 @@ import (
 type Config struct {
 	DebugMode        bool                  `yaml:"DebugMode"`
 	TelegramBotToken string                `yaml:"TelegramBotToken"`
+	OpenAIConfig     *service.OpenAIConfig `yaml:"OpenAIConfig"`
 	DiceConfig       *service.DiceConfig   `yaml:"DiceConfig"`
 	QRConfig         *service.QRConfig     `yaml:"QRConfig"`
 }
@@ -48,6 +49,9 @@ func NewConfig() *Config {
 	return &Config{
 		DebugMode:        false,
 		TelegramBotToken: "",
+		OpenAIConfig: &service.OpenAIConfig{
+			Enable: true,
+			Token:  "",
 		},
 		DiceConfig: &service.DiceConfig{Enable: true},
 		QRConfig:   &service.QRConfig{Enable: true},
