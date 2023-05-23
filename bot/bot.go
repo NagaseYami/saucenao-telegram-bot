@@ -12,7 +12,8 @@ import (
 
 type Bot struct {
 	*Config
-	TelegramBot *tele.Bot
+	tb        *tele.Bot
+	whiteList []string
 }
 
 func NewBot(config *Config) *Bot {
@@ -30,7 +31,7 @@ func (bot *Bot) Init() {
 	}
 
 	// TelegramBot初始化
-	bot.TelegramBot, err = tele.NewBot(tele.Settings{
+	bot.tb, err = tele.NewBot(tele.Settings{
 		// You can also set custom API URL.
 		// If field is empty it equals to "https://api.telegram.org".
 		URL:    "",
@@ -45,12 +46,12 @@ func (bot *Bot) Init() {
 		service.OpenAIInstance.Init(bot.OpenAIConfig)
 	}
 
-	bot.TelegramBot.Handle(tele.OnText, bot.feature(bot.startChatGPTByReply, bot.OpenAIConfig.Enable))
-	bot.TelegramBot.Handle("/chatgpt", bot.feature(bot.createTalk, bot.OpenAIConfig.Enable))
+	bot.tb.Handle(tele.OnText, bot.feature(bot.startChatGPTByReply, bot.OpenAIConfig.Enable))
+	bot.tb.Handle("/chatgpt", bot.feature(bot.createTalk, bot.OpenAIConfig.Enable))
 }
 
 func (bot *Bot) Start() {
-	bot.TelegramBot.Start()
+	bot.tb.Start()
 }
 
 func (bot *Bot) feature(f tele.HandlerFunc, enable bool) tele.HandlerFunc {
@@ -67,7 +68,7 @@ func (bot *Bot) startChatGPTByReply(c tele.Context) error {
 		if talk != nil {
 			text := c.Message().Text
 			if strings.ReplaceAll(strings.ReplaceAll(text, " ", ""), "　", "") == "" {
-				text = "你好。你是谁？你能做些什么？"
+				text = "用中文告诉我：你是谁以及你能做什么"
 			}
 			talk.Messages = append(talk.Messages, struct {
 				IsUser    bool
@@ -81,7 +82,7 @@ func (bot *Bot) startChatGPTByReply(c tele.Context) error {
 			talk.LastUsedAt = time.Now().Unix()
 			return bot.chat(c, talk)
 		}
-		bot.TelegramBot.Reply(c.Message(), "抱歉，出于技术原因，我不记得这段对话了，请开始一段新的对话")
+		bot.tb.Reply(c.Message(), "抱歉，出于技术原因，我不记得这段对话了，请开始一段新的对话")
 	}
 	return nil
 }
@@ -90,7 +91,7 @@ func (bot *Bot) createTalk(c tele.Context) error {
 	text := strings.Replace(c.Message().Text, "/chatgpt", "", 1)
 
 	if strings.ReplaceAll(strings.ReplaceAll(text, " ", ""), "　", "") == "" {
-		text = "你好。你是谁？你能做些什么？"
+		text = "用中文告诉我：你是谁以及你能做什么"
 	}
 
 	talk := &service.OpenAIChatGPTTalk{
@@ -110,7 +111,7 @@ func (bot *Bot) createTalk(c tele.Context) error {
 }
 
 func (bot *Bot) chat(c tele.Context, talk *service.OpenAIChatGPTTalk) error {
-	r, err := bot.TelegramBot.Reply(c.Message(), "请等待...")
+	r, err := bot.tb.Reply(c.Message(), "请等待...")
 	var chatCompletionMessages []openai.ChatCompletionMessage
 	for _, msg := range talk.Messages {
 		if msg.IsUser {
@@ -127,12 +128,12 @@ func (bot *Bot) chat(c tele.Context, talk *service.OpenAIChatGPTTalk) error {
 	}
 	resp, err := service.OpenAIInstance.ChatCompletion(chatCompletionMessages)
 	if err != nil {
-		bot.TelegramBot.Send(c.Recipient(), err)
+		bot.tb.Send(c.Chat(), err)
 		return err
 	}
-	r, err = bot.TelegramBot.Edit(r, resp)
+	r, err = bot.tb.Edit(r, resp)
 	if err != nil {
-		bot.TelegramBot.Send(c.Recipient(), err)
+		bot.tb.Send(c.Chat(), err)
 		return err
 	}
 	talk.Messages = append(talk.Messages, struct {
@@ -149,6 +150,6 @@ func (bot *Bot) chat(c tele.Context, talk *service.OpenAIChatGPTTalk) error {
 }
 
 func (bot *Bot) featureDisabled(c tele.Context) error {
-	_, err := bot.TelegramBot.Reply(c.Message(), "该功能未启动，请联系管理员")
+	_, err := bot.tb.Reply(c.Message(), "该功能未启动，请联系管理员")
 	return err
 }
