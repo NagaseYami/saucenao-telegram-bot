@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/NagaseYami/telegram-bot/bot"
-	"github.com/NagaseYami/telegram-bot/tool"
 	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 )
@@ -18,10 +17,6 @@ func main() {
 		log.SetLevel(log.DebugLevel)
 		log.Debug("已开启Debug模式")
 	}
-
-	tool.Browser.Init()
-	log.Debug("浏览器初始化成功")
-	defer tool.Browser.UnInit()
 
 	bot := bot.NewBot(config)
 	bot.Init()

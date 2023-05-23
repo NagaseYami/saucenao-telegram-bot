@@ -11,12 +11,10 @@ import (
 )
 
 type Config struct {
-	DebugMode        bool                    `yaml:"DebugMode"`
-	TelegramBotToken string                  `yaml:"TelegramBotToken"`
-	SaucenaoConfig   *service.SaucenaoConfig `yaml:"SaucenaoConfig"`
-	Ascii2dConfig    *service.Ascii2dConfig  `yaml:"Ascii2dConfig"`
-	DiceConfig       *service.DiceConfig     `yaml:"DiceConfig"`
-	QRConfig         *service.QRConfig       `yaml:"QRConfig"`
+	DebugMode        bool                  `yaml:"DebugMode"`
+	TelegramBotToken string                `yaml:"TelegramBotToken"`
+	DiceConfig       *service.DiceConfig   `yaml:"DiceConfig"`
+	QRConfig         *service.QRConfig     `yaml:"QRConfig"`
 }
 
 func LoadConfig(configFilePath string) *Config {
@@ -50,14 +48,6 @@ func NewConfig() *Config {
 	return &Config{
 		DebugMode:        false,
 		TelegramBotToken: "",
-		SaucenaoConfig: &service.SaucenaoConfig{
-			Enable:                    false,
-			ApiKey:                    "",
-			LowSimilarityWarningLevel: 70,
-		},
-		Ascii2dConfig: &service.Ascii2dConfig{
-			Enable:        true,
-			TempDirectory: "./temp",
 		},
 		DiceConfig: &service.DiceConfig{Enable: true},
 		QRConfig:   &service.QRConfig{Enable: true},
