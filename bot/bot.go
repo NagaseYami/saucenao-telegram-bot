@@ -68,7 +68,7 @@ func (bot *Bot) startChatGPTByReply(c tele.Context) error {
 		if talk != nil {
 			text := c.Message().Text
 			if strings.ReplaceAll(strings.ReplaceAll(text, " ", ""), "　", "") == "" {
-				text = "用中文告诉我：你是谁以及你能做什么"
+				text = "你好"
 			}
 			talk.Messages = append(talk.Messages, struct {
 				IsUser    bool
@@ -91,7 +91,7 @@ func (bot *Bot) createTalk(c tele.Context) error {
 	text := strings.Replace(c.Message().Text, "/chatgpt", "", 1)
 
 	if strings.ReplaceAll(strings.ReplaceAll(text, " ", ""), "　", "") == "" {
-		text = "用中文告诉我：你是谁以及你能做什么"
+		text = "你好"
 	}
 
 	talk := &service.OpenAIChatGPTTalk{
