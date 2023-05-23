@@ -67,7 +67,7 @@ func (bot *Bot) startChatGPTByReply(c tele.Context) error {
 		if talk != nil {
 			text := c.Message().Text
 			if strings.ReplaceAll(strings.ReplaceAll(text, " ", ""), "　", "") == "" {
-				text = "你好"
+				text = "你好。你是谁？你能做些什么？"
 			}
 			talk.Messages = append(talk.Messages, struct {
 				IsUser    bool
@@ -90,7 +90,7 @@ func (bot *Bot) createTalk(c tele.Context) error {
 	text := strings.Replace(c.Message().Text, "/chatgpt", "", 1)
 
 	if strings.ReplaceAll(strings.ReplaceAll(text, " ", ""), "　", "") == "" {
-		text = "你好"
+		text = "你好。你是谁？你能做些什么？"
 	}
 
 	talk := &service.OpenAIChatGPTTalk{
@@ -110,6 +110,7 @@ func (bot *Bot) createTalk(c tele.Context) error {
 }
 
 func (bot *Bot) chat(c tele.Context, talk *service.OpenAIChatGPTTalk) error {
+	r, err := bot.TelegramBot.Reply(c.Message(), "请等待...")
 	var chatCompletionMessages []openai.ChatCompletionMessage
 	for _, msg := range talk.Messages {
 		if msg.IsUser {
@@ -126,10 +127,12 @@ func (bot *Bot) chat(c tele.Context, talk *service.OpenAIChatGPTTalk) error {
 	}
 	resp, err := service.OpenAIInstance.ChatCompletion(chatCompletionMessages)
 	if err != nil {
+		bot.TelegramBot.Send(c.Recipient(), err)
 		return err
 	}
-	r, err := bot.TelegramBot.Reply(c.Message(), resp)
+	r, err = bot.TelegramBot.Edit(r, resp)
 	if err != nil {
+		bot.TelegramBot.Send(c.Recipient(), err)
 		return err
 	}
 	talk.Messages = append(talk.Messages, struct {
