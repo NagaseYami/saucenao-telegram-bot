@@ -14,8 +14,6 @@ type Config struct {
 	DebugMode        bool                  `yaml:"DebugMode"`
 	TelegramBotToken string                `yaml:"TelegramBotToken"`
 	OpenAIConfig     *service.OpenAIConfig `yaml:"OpenAIConfig"`
-	DiceConfig       *service.DiceConfig   `yaml:"DiceConfig"`
-	QRConfig         *service.QRConfig     `yaml:"QRConfig"`
 }
 
 func LoadConfig(configFilePath string) *Config {
@@ -53,8 +51,6 @@ func NewConfig() *Config {
 			Enable: true,
 			Token:  "",
 		},
-		DiceConfig: &service.DiceConfig{Enable: true},
-		QRConfig:   &service.QRConfig{Enable: true},
 	}
 }
 
