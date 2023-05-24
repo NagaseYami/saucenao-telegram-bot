@@ -2,8 +2,13 @@ package service
 
 import (
 	"context"
+	"errors"
+	"io"
+	"strconv"
+	"time"
 
 	"github.com/sashabaranov/go-openai"
+	log "github.com/sirupsen/logrus"
 )
 
 type OpenAIConfig struct {
@@ -72,6 +77,62 @@ func (service *OpenAIService) ChatCompletion(messages []openai.ChatCompletionMes
 	}
 
 	return resp.Choices[0].Message.Content, err
+}
+
+func (service *OpenAIService) ChatStreamCompletion(messages []openai.ChatCompletionMessage, onResp func(string, bool),
+	onFail func(error), retry int) {
+
+	if retry > 5 {
+		onFail(errors.New("失败重试次数过多，请稍后重试或联系管理员检查Log"))
+		return
+	}
+
+	req := openai.ChatCompletionRequest{
+		Model:    openai.GPT3Dot5Turbo0301,
+		Messages: messages,
+		Stream:   true,
+	}
+	stream, err := service.client.CreateChatCompletionStream(service.clientCtx, req)
+	e := &openai.APIError{}
+	if errors.As(err, &e) {
+		onFail(errors.New("遇到API错误，正在重试。重试次数：" + strconv.Itoa(retry)))
+		service.ChatStreamCompletion(messages, onResp, onFail, retry+1)
+		return
+	}
+	defer stream.Close()
+
+	startTime := time.Now().Unix()
+	stackResp := ""
+	finished := false
+	for {
+		response, err := stream.Recv()
+		log.Debug(response)
+
+		if err != nil {
+			if errors.As(err, &e) {
+				onFail(errors.New("遇到API错误，正在重试。重试次数：" + strconv.Itoa(retry)))
+				service.ChatStreamCompletion(messages, onResp, onFail, retry+1)
+				return
+			}
+
+			if errors.Is(err, io.EOF) {
+				finished = true
+			}
+		}
+
+		if finished {
+			onResp(stackResp, true)
+			break
+		} else {
+			stackResp += response.Choices[0].Delta.Content
+		}
+
+		if time.Now().Unix()-startTime >= 3 && stackResp != "" {
+			startTime = time.Now().Unix()
+			onResp(stackResp, finished)
+			stackResp = ""
+		}
+	}
 }
 
 func (service *OpenAIService) GenerateChatCompletionMessage(messages []struct {

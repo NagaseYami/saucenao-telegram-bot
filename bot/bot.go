@@ -54,15 +54,19 @@ func (bot *Bot) Start() {
 	bot.tb.Start()
 }
 
-func (bot *Bot) feature(f tele.HandlerFunc, enable bool) tele.HandlerFunc {
+func (bot *Bot) feature(f func(tele.Context, chan error), enable bool) tele.HandlerFunc {
 	if enable {
-		return f
+		return func(context tele.Context) error {
+			var ch = make(chan error)
+			go f(context, ch)
+			return <-ch
+		}
 	} else {
 		return bot.featureDisabled
 	}
 }
 
-func (bot *Bot) startChatGPTByReply(c tele.Context) error {
+func (bot *Bot) startChatGPTByReply(c tele.Context, ch chan error) {
 	if c.Message().IsReply() {
 		talk := service.OpenAIInstance.GetTalkByMessageID(c.Message().ReplyTo.ID)
 		if talk != nil {
@@ -80,15 +84,23 @@ func (bot *Bot) startChatGPTByReply(c tele.Context) error {
 				Message:   text,
 			})
 			talk.LastUsedAt = time.Now().Unix()
-			return bot.chat(c, talk)
+			ch <- bot.chat(c, talk)
+			return
 		}
 		bot.tb.Reply(c.Message(), "抱歉，出于技术原因，我不记得这段对话了，请开始一段新的对话")
 	}
-	return nil
+	ch <- nil
 }
 
-func (bot *Bot) createTalk(c tele.Context) error {
-	text := strings.Replace(c.Message().Text, "/chatgpt", "", 1)
+func (bot *Bot) createTalk(c tele.Context, ch chan error) {
+	text := c.Message().Text
+	for _, e := range c.Message().Entities {
+		if e.Type == tele.EntityCommand {
+			entityText := c.Message().EntityText(e)
+			text = strings.Replace(text, entityText, "", 1)
+			break
+		}
+	}
 
 	if strings.ReplaceAll(strings.ReplaceAll(text, " ", ""), "　", "") == "" {
 		text = "你好"
@@ -107,11 +119,11 @@ func (bot *Bot) createTalk(c tele.Context) error {
 
 	service.OpenAIInstance.AddTalk(talk)
 
-	return bot.chat(c, talk)
+	ch <- bot.chat(c, talk)
 }
 
 func (bot *Bot) chat(c tele.Context, talk *service.OpenAIChatGPTTalk) error {
-	r, err := bot.tb.Reply(c.Message(), "请等待...")
+	reply, err := bot.tb.Reply(c.Message(), "请等待...")
 	var chatCompletionMessages []openai.ChatCompletionMessage
 	for _, msg := range talk.Messages {
 		if msg.IsUser {
@@ -126,25 +138,28 @@ func (bot *Bot) chat(c tele.Context, talk *service.OpenAIChatGPTTalk) error {
 			})
 		}
 	}
-	resp, err := service.OpenAIInstance.ChatCompletion(chatCompletionMessages)
-	if err != nil {
-		bot.tb.Send(c.Chat(), err)
-		return err
-	}
-	r, err = bot.tb.Edit(r, resp)
-	if err != nil {
-		bot.tb.Send(c.Chat(), err)
-		return err
-	}
-	talk.Messages = append(talk.Messages, struct {
-		IsUser    bool
-		MessageID int
-		Message   string
-	}{
-		IsUser:    false,
-		MessageID: r.ID,
-		Message:   resp,
-	})
+	var result = ""
+	service.OpenAIInstance.ChatStreamCompletion(chatCompletionMessages, func(resp string, finished bool) {
+		result += resp
+		replyText := result
+		if finished {
+			replyText = result + "(回答完毕)"
+		}
+		bot.tb.Edit(reply, replyText)
+		if result != "" && finished {
+			talk.Messages = append(talk.Messages, struct {
+				IsUser    bool
+				MessageID int
+				Message   string
+			}{
+				IsUser:    false,
+				MessageID: reply.ID,
+				Message:   result,
+			})
+		}
+	}, func(err error) {
+		bot.tb.Edit(reply, err.Error())
+	}, 0)
 
 	return err
 }
