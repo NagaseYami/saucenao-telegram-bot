@@ -83,9 +83,13 @@ func (service *OpenAIService) ChatCompletion(messages []openai.ChatCompletionMes
 func (service *OpenAIService) ChatStreamCompletion(messages []openai.ChatCompletionMessage, onResp func(string, bool),
 	onFail func(error), retry int) {
 
-	if retry > 5 {
-		onFail(errors.New("失败重试次数过多，请稍后重试或联系管理员检查Log"))
-		return
+	if retry > 0 {
+		if retry <= 5 {
+			onFail(errors.New("遇到API错误，正在重试。重试次数：" + strconv.Itoa(retry)))
+		} else {
+			onFail(errors.New("失败重试次数过多，请稍后重试或联系管理员检查Log"))
+			return
+		}
 	}
 
 	req := openai.ChatCompletionRequest{
@@ -96,7 +100,6 @@ func (service *OpenAIService) ChatStreamCompletion(messages []openai.ChatComplet
 	stream, err := service.client.CreateChatCompletionStream(service.clientCtx, req)
 	e := &openai.APIError{}
 	if errors.As(err, &e) {
-		onFail(errors.New("遇到API错误，正在重试。重试次数：" + strconv.Itoa(retry)))
 		service.ChatStreamCompletion(messages, onResp, onFail, retry+1)
 		return
 	}
@@ -111,7 +114,6 @@ func (service *OpenAIService) ChatStreamCompletion(messages []openai.ChatComplet
 
 		if err != nil {
 			if errors.As(err, &e) {
-				onFail(errors.New("遇到API错误，正在重试。重试次数：" + strconv.Itoa(retry)))
 				service.ChatStreamCompletion(messages, onResp, onFail, retry+1)
 				return
 			}
