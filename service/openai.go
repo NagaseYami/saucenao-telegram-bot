@@ -88,7 +88,7 @@ func (service *OpenAIService) ChatStreamCompletion(messages []openai.ChatComplet
 	}
 
 	req := openai.ChatCompletionRequest{
-		Model:    openai.GPT3Dot5Turbo0301,
+		Model:    openai.GPT3Dot5Turbo,
 		Messages: messages,
 		Stream:   true,
 	}
