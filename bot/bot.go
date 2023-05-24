@@ -87,7 +87,10 @@ func (bot *Bot) startChatGPTByReply(c tele.Context, ch chan error) {
 			ch <- bot.chat(c, talk)
 			return
 		}
-		bot.tb.Reply(c.Message(), "抱歉，出于技术原因，我不记得这段对话了，请开始一段新的对话")
+		bot.tb.Reply(c.Message(), "抱歉，我无法继续这段对话，建议您重新开启一段新的对话。\n"+
+			"以下原因会导致该错误：\n"+
+			"1. 重启Bot会清空所有对话\n"+
+			"2. 您Reply的消息还在输出结果，请等到🔚出现后再回复。")
 	}
 	ch <- nil
 }
@@ -141,9 +144,11 @@ func (bot *Bot) chat(c tele.Context, talk *service.OpenAIChatGPTTalk) error {
 	var result = ""
 	service.OpenAIInstance.ChatStreamCompletion(chatCompletionMessages, func(resp string, finished bool) {
 		result += resp
-		replyText := result
+		var replyText string
 		if finished {
-			replyText = result + "(回答完毕)"
+			replyText = result + "🔚"
+		} else {
+			replyText = result + "⏳"
 		}
 		bot.tb.Edit(reply, replyText)
 		if result != "" && finished {
