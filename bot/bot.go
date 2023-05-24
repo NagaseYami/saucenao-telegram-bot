@@ -47,7 +47,7 @@ func (bot *Bot) Init() {
 	}
 
 	bot.tb.Handle(tele.OnText, bot.feature(bot.startChatGPTByReply, bot.OpenAIConfig.Enable))
-	bot.tb.Handle("/chatgpt", bot.feature(bot.createTalk, bot.OpenAIConfig.Enable))
+	bot.tb.Handle("/"+bot.OpenAIConfig.Endpoint, bot.feature(bot.createTalk, bot.OpenAIConfig.Enable))
 }
 
 func (bot *Bot) Start() {

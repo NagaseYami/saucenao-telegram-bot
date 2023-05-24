@@ -48,8 +48,9 @@ func NewConfig() *Config {
 		DebugMode:        false,
 		TelegramBotToken: "",
 		OpenAIConfig: &service.OpenAIConfig{
-			Enable: true,
-			Token:  "",
+			Enable:   true,
+			Endpoint: "openai",
+			Token:    "",
 		},
 	}
 }

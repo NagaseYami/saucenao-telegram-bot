@@ -12,8 +12,9 @@ import (
 )
 
 type OpenAIConfig struct {
-	Enable bool   `yaml:"Enable"`
-	Token  string `yaml:"Token"`
+	Enable   bool   `yaml:"Enable"`
+	Endpoint string `yaml:"Endpoint"`
+	Token    string `yaml:"Token"`
 }
 
 type OpenAIService struct {
