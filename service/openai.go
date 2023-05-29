@@ -64,7 +64,18 @@ func (service *OpenAIService) GetTalkByMessageID(messageId int) *OpenAIChatGPTTa
 	return nil
 }
 
-func (service *OpenAIService) ChatCompletion(messages []openai.ChatCompletionMessage) (string, error) {
+func (service *OpenAIService) ChatCompletion(messages []openai.ChatCompletionMessage, onResp func(string),
+	onFail func(error), retry int) {
+
+	if retry > 0 {
+		if retry <= 5 {
+			onFail(errors.New("遇到API错误，正在重试。重试次数：" + strconv.Itoa(retry)))
+		} else {
+			onFail(errors.New("失败重试次数过多，请稍后重试或联系管理员检查Log"))
+			return
+		}
+	}
+
 	resp, err := service.client.CreateChatCompletion(
 		service.clientCtx,
 		openai.ChatCompletionRequest{
@@ -73,11 +84,14 @@ func (service *OpenAIService) ChatCompletion(messages []openai.ChatCompletionMes
 		},
 	)
 
-	if err != nil {
-		return "", err
+	e := &openai.APIError{}
+	if errors.As(err, &e) {
+		log.Errorf("调用CreateChatCompletion时遇到API错误：%s", e.Code)
+		service.ChatCompletion(messages, onResp, onFail, retry+1)
+		return
 	}
 
-	return resp.Choices[0].Message.Content, err
+	onResp(resp.Choices[0].Message.Content)
 }
 
 func (service *OpenAIService) ChatStreamCompletion(messages []openai.ChatCompletionMessage, onResp func(string, bool),
@@ -100,6 +114,7 @@ func (service *OpenAIService) ChatStreamCompletion(messages []openai.ChatComplet
 	stream, err := service.client.CreateChatCompletionStream(service.clientCtx, req)
 	e := &openai.APIError{}
 	if errors.As(err, &e) {
+		log.Errorf("调用CreateChatCompletionStream时遇到API错误：%s", e.Code)
 		service.ChatStreamCompletion(messages, onResp, onFail, retry+1)
 		return
 	}
@@ -110,10 +125,10 @@ func (service *OpenAIService) ChatStreamCompletion(messages []openai.ChatComplet
 	finished := false
 	for {
 		response, err := stream.Recv()
-		log.Debug(response)
 
 		if err != nil {
 			if errors.As(err, &e) {
+				log.Errorf("调用stream.Recv时遇到API错误：%s", e.Code)
 				service.ChatStreamCompletion(messages, onResp, onFail, retry+1)
 				return
 			}

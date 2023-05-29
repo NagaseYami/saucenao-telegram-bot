@@ -46,7 +46,7 @@ func (bot *Bot) Init() {
 		service.OpenAIInstance.Init(bot.OpenAIConfig)
 	}
 
-	bot.tb.Handle(tele.OnText, bot.feature(bot.startChatGPTByReply, bot.OpenAIConfig.Enable))
+	bot.tb.Handle(tele.OnText, bot.feature(bot.continueTalk, bot.OpenAIConfig.Enable))
 	bot.tb.Handle("/"+bot.OpenAIConfig.Endpoint, bot.feature(bot.createTalk, bot.OpenAIConfig.Enable))
 }
 
@@ -66,7 +66,7 @@ func (bot *Bot) feature(f func(tele.Context, chan error), enable bool) tele.Hand
 	}
 }
 
-func (bot *Bot) startChatGPTByReply(c tele.Context, ch chan error) {
+func (bot *Bot) continueTalk(c tele.Context, ch chan error) {
 	if c.Message().IsReply() {
 		talk := service.OpenAIInstance.GetTalkByMessageID(c.Message().ReplyTo.ID)
 		if talk != nil {
@@ -141,17 +141,11 @@ func (bot *Bot) chat(c tele.Context, talk *service.OpenAIChatGPTTalk) error {
 			})
 		}
 	}
-	var result = ""
-	service.OpenAIInstance.ChatStreamCompletion(chatCompletionMessages, func(resp string, finished bool) {
-		result += resp
-		var replyText string
-		if finished {
-			replyText = result + "🔚"
-		} else {
-			replyText = result + "⏳"
-		}
+
+	service.OpenAIInstance.ChatCompletion(chatCompletionMessages, func(resp string) {
+		replyText := resp + "🔚"
 		bot.tb.Edit(reply, replyText)
-		if result != "" && finished {
+		if resp != "" {
 			talk.Messages = append(talk.Messages, struct {
 				IsUser    bool
 				MessageID int
@@ -159,12 +153,36 @@ func (bot *Bot) chat(c tele.Context, talk *service.OpenAIChatGPTTalk) error {
 			}{
 				IsUser:    false,
 				MessageID: reply.ID,
-				Message:   result,
+				Message:   resp,
 			})
 		}
 	}, func(err error) {
 		bot.tb.Edit(reply, err.Error())
 	}, 0)
+
+	// service.OpenAIInstance.ChatStreamCompletion(chatCompletionMessages, func(resp string, finished bool) {
+	// 	result += resp
+	// 	var replyText string
+	// 	if finished {
+	// 		replyText = result + "🔚"
+	// 	} else {
+	// 		replyText = result + "⏳"
+	// 	}
+	// 	bot.tb.Edit(reply, replyText)
+	// 	if result != "" && finished {
+	// 		talk.Messages = append(talk.Messages, struct {
+	// 			IsUser    bool
+	// 			MessageID int
+	// 			Message   string
+	// 		}{
+	// 			IsUser:    false,
+	// 			MessageID: reply.ID,
+	// 			Message:   result,
+	// 		})
+	// 	}
+	// }, func(err error) {
+	// 	bot.tb.Edit(reply, err.Error())
+	// }, 0)
 
 	return err
 }
