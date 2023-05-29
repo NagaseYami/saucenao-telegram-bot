@@ -115,6 +115,9 @@ func (service *OpenAIService) ChatStreamCompletion(messages []openai.ChatComplet
 	e := &openai.APIError{}
 	if errors.As(err, &e) {
 		log.Errorf("调用CreateChatCompletionStream时遇到API错误：%s", e.Code)
+		if stream != nil {
+			stream.Close()
+		}
 		service.ChatStreamCompletion(messages, onResp, onFail, retry+1)
 		return
 	}
